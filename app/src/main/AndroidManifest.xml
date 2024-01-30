@@ -23,6 +23,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.theme.NotificationActivity"
+            android:exported="true"
+            android:label="@string/playground_notification"
+            android:theme="@style/Theme.AndroidPlayground">
+        </activity>
     </application>
 
 </manifest>

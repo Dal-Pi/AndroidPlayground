@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">AndroidPlayground</string>
+
+    <string name="playground_notification">Notification</string>
 </resources>
