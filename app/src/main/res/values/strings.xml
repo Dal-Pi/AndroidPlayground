@@ -2,4 +2,5 @@
     <string name="app_name">AndroidPlayground</string>
 
     <string name="playground_notification">Notification</string>
+    <string name="playground_lazycolumn">LazyColumn</string>
 </resources>

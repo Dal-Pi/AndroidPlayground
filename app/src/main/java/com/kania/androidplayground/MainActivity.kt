@@ -28,8 +28,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.kania.androidplayground.ui.LazyColumnActivity
 import com.kania.androidplayground.ui.theme.AndroidPlaygroundTheme
-import com.kania.androidplayground.ui.theme.NotificationActivity
+import com.kania.androidplayground.ui.NotificationActivity
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,6 +74,12 @@ private fun PlaygroundList(
             nameStringId = R.string.playground_notification,
             onClick = {
                 context.startActivity(Intent(context, NotificationActivity::class.java))
+            }
+        )
+        playgroundListItem(
+            nameStringId = R.string.playground_lazycolumn,
+            onClick = {
+                context.startActivity(Intent(context, LazyColumnActivity::class.java))
             }
         )
     }

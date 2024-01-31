@@ -1,4 +1,4 @@
-package com.kania.androidplayground.ui.theme
+package com.kania.androidplayground.ui
 
 import android.app.Activity
 import android.os.Bundle
@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.kania.androidplayground.R
+import com.kania.androidplayground.ui.theme.AndroidPlaygroundTheme
 
 class NotificationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
