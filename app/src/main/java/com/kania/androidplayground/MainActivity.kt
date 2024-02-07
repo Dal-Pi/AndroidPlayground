@@ -30,7 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kania.androidplayground.ui.LazyListPagingTestActivity
 import com.kania.androidplayground.ui.theme.AndroidPlaygroundTheme
-import com.kania.androidplayground.ui.NotificationActivity
+import com.kania.androidplayground.ui.notification.NotificationActivity
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

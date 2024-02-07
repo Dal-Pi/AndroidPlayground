@@ -1,11 +1,12 @@
-package com.kania.androidplayground.ui
+package com.kania.androidplayground.ui.notification
 
 import android.app.Activity
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -15,26 +16,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.kania.androidplayground.R
-import com.kania.androidplayground.ui.theme.AndroidPlaygroundTheme
-
-class NotificationActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            AndroidPlaygroundTheme {
-                NotificationScreen()
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun NotificationScreen() {
+internal fun NotificationScreen(
+    areNotificationsEnabled: Boolean?,
+    onClickNotificationSettings: () -> Unit
+) {
     Scaffold(
         topBar = {
             val activity = LocalContext.current as? Activity
@@ -63,6 +57,35 @@ private fun NotificationScreen() {
             )
         }
     ) { innerPadding ->
-
+        Body(
+            modifier = Modifier.padding(innerPadding),
+            areNotificationsEnabled = areNotificationsEnabled,
+            onClickNotificationSettings = onClickNotificationSettings
+        )
     }
 }
+
+@Composable
+private fun Body(
+    modifier: Modifier = Modifier,
+    areNotificationsEnabled: Boolean?,
+    onClickNotificationSettings: () -> Unit
+) {
+    Column(
+        modifier = modifier.padding(
+            horizontal = 20.dp,
+            vertical = 20.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        Text(
+            text = "Notifications Enabled : ${areNotificationsEnabled ?: "Unknown"}"
+        )
+        Button(
+            onClick = onClickNotificationSettings
+        ) {
+            Text(text = "Notification Settings")
+        }
+    }
+}
+
