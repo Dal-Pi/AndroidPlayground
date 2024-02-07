@@ -32,9 +32,9 @@
         </activity>
 
         <activity
-            android:name=".ui.LazyColumnActivity"
+            android:name=".ui.LazyListPagingTestActivity"
             android:exported="true"
-            android:label="@string/playground_lazycolumn"
+            android:label="@string/playground_lazylistpaging"
             android:theme="@style/Theme.AndroidPlayground">
         </activity>
     </application>

@@ -28,7 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.kania.androidplayground.ui.LazyColumnActivity
+import com.kania.androidplayground.ui.LazyListPagingTestActivity
 import com.kania.androidplayground.ui.theme.AndroidPlaygroundTheme
 import com.kania.androidplayground.ui.NotificationActivity
 
@@ -77,9 +77,9 @@ private fun PlaygroundList(
             }
         )
         playgroundListItem(
-            nameStringId = R.string.playground_lazycolumn,
+            nameStringId = R.string.playground_lazylistpaging,
             onClick = {
-                context.startActivity(Intent(context, LazyColumnActivity::class.java))
+                context.startActivity(Intent(context, LazyListPagingTestActivity::class.java))
             }
         )
     }
