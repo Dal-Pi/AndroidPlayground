@@ -5,11 +5,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -90,22 +93,68 @@ private fun Body(
                 horizontal = 20.dp,
                 vertical = 20.dp
             )
-            .background(color = MaterialTheme.colorScheme.background),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+            .background(color = MaterialTheme.colorScheme.background)
     ) {
-        Text(
-            text = "LocalDateTime : ${currentLocalDateTime}"
+        ListItem(
+            codeText = "LocalDateTime.toString()",
+            resultText = currentLocalDateTime.toString()
         )
-                Text(
-                    text = "yyyyMMddTHHmmss format : ${currentLocalDateTime.to_yyyyMMddTHHmmss_string()}"
-                )
-        Text(
-            text = "yyyyMMddTHHmmssX format : ${currentLocalDateTime.to_yyyyMMddTHHmmssSSSSSS_string()}"
+
+        val patternInSeconds = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        val timeDateStringInSeconds = currentLocalDateTime.toStringAsPattern(patternInSeconds)
+        ListItem(
+            codeText = "LocalDateTime -> $patternInSeconds",
+            resultText = timeDateStringInSeconds
         )
+
+        val patternInMicroseconds = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        val timeDateStringInMicroseconds = currentLocalDateTime.toStringAsPattern(patternInMicroseconds)
+        ListItem(
+            codeText = "LocalDateTime -> $patternInMicroseconds",
+            resultText = timeDateStringInMicroseconds
+        )
+
+        timeDateStringInSeconds.let {
+            val parsedLocalDateTime = getLocalDateTimeFromUtcStringInSeconds(it)
+            ListItem(
+                codeText = "$it -> LocalDateTime",
+                resultText = parsedLocalDateTime.toString()
+            )
+        }
+//        val parsedLocalDateTime = getLocalDateTimeFromStringInSeconds(timeDateStringInMicroseconds)
+//        ListItem(
+//            codeText = "$timeDateStringInMicroseconds -> LocalDateTime",
+//            resultText = parsedLocalDateTime.toString()
+//        )
     }
 }
 
-@Preview
+@Composable
+private fun ListItem(
+    codeText: String,
+    resultText: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 5.dp)
+    ) {
+        Text(
+            text = codeText,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Text(
+            modifier = Modifier.padding(start = 10.dp),
+            text = resultText,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(modifier = Modifier.height(5.dp))
+        Divider()
+    }
+
+}
+
+@Preview(apiLevel = 33)
 @Composable
 private fun DateTimeTestScreenPreview() {
     AndroidPlaygroundTheme {
