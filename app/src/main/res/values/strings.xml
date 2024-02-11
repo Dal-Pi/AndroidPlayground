@@ -3,4 +3,5 @@
 
     <string name="playground_notification">Notification</string>
     <string name="playground_lazylistpaging">LazyList Paging</string>
+    <string name="playground_datetime">DateTime</string>
 </resources>
