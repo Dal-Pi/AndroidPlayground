@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.kania.androidplayground.R
 import com.kania.androidplayground.ui.theme.AndroidPlaygroundTheme
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 class DateTimeTestActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,36 +97,50 @@ private fun Body(
             .background(color = MaterialTheme.colorScheme.background)
     ) {
         ListItem(
-            codeText = "LocalDateTime.toString()",
+            codeText = "LocalDateTime",
             resultText = currentLocalDateTime.toString()
         )
 
-        val patternInSeconds = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        val patternInSeconds = "yyyy-MM-dd HH:mm:ss"
         val timeDateStringInSeconds = currentLocalDateTime.toStringAsPattern(patternInSeconds)
         ListItem(
-            codeText = "LocalDateTime -> $patternInSeconds",
+            codeText = "LocalDateTime -> Formatter($patternInSeconds)",
             resultText = timeDateStringInSeconds
         )
 
-        val patternInMicroseconds = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+        val patternInMicroseconds = "yyyy-MM-dd HH:mm:ss.SSSSSS"
         val timeDateStringInMicroseconds = currentLocalDateTime.toStringAsPattern(patternInMicroseconds)
         ListItem(
-            codeText = "LocalDateTime -> $patternInMicroseconds",
+            codeText = "LocalDateTime -> Formatter($patternInMicroseconds)",
             resultText = timeDateStringInMicroseconds
         )
 
-        timeDateStringInSeconds.let {
-            val parsedLocalDateTime = getLocalDateTimeFromUtcStringInSeconds(it)
+        val currentInstant = currentLocalDateTime.atZone(ZoneId.systemDefault()).toInstant()
+        ListItem(
+            codeText = "LocalDateTime -> Instant",
+            resultText = currentInstant.toString()
+        )
+
+        val instantString = getInstantStringFromLocalDateTime(currentLocalDateTime)
+        ListItem(
+            codeText = "LocalDateTime -> InstantFormatter",
+            resultText = instantString ?: "error"
+        )
+        
+        if (instantString != null) {
+            val parsedLocalDateTime = getLocalDateTimeFromInstantString(instantString)
             ListItem(
-                codeText = "$it -> LocalDateTime",
-                resultText = parsedLocalDateTime.toString()
+                codeText = "Instant($instantString) -> LocalDateTime",
+                resultText = parsedLocalDateTime?.toString() ?: "error"
+            )
+
+            val instantPatternInSeconds = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+            val instantStringInSeconds = currentLocalDateTime.toStringAsPattern(instantPatternInSeconds)
+            ListItem(
+                codeText = "InstantString($instantStringInSeconds) -> LocalDateTime (forced)",
+                resultText = getLocalDateTimeFromInstantString(instantStringInSeconds)?.toString() ?: "error"
             )
         }
-//        val parsedLocalDateTime = getLocalDateTimeFromStringInSeconds(timeDateStringInMicroseconds)
-//        ListItem(
-//            codeText = "$timeDateStringInMicroseconds -> LocalDateTime",
-//            resultText = parsedLocalDateTime.toString()
-//        )
     }
 }
 
