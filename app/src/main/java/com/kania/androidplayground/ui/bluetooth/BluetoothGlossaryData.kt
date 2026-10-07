@@ -248,6 +248,27 @@ object BluetoothGlossaryData {
             summary = "차세대 LE Audio 환경에서 통화 제어와 오디오 스트리밍을 처리하는 최신 GATT 기반 통화 프로토콜.",
             fullExplanation = "기존 블루투스 클래식의 HFP/SCO를 대체하는 최신 규격입니다. 레거시 AT 커맨드 대신 GATT 기반의 TBS(Telephone Bearer Service, 서비스 UUID 0x184B)와 CCP(Call Control Profile)를 사용하여 다자 통화 제어, 상태 알림, 신규 LC3 코덱 기반의 초고음질 저전력 통화를 제공합니다.",
             relatedApis = listOf("BluetoothLeCallControl", "BluetoothLeAudio", "packages/modules/Bluetooth/system/bta/le_audio")
+        ),
+        GlossaryItem(
+            term = "CLIP (Calling Line Identification Presentation - 발신자 번호 표시)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "전화 수신 시 발신자의 전화번호를 헤드셋이나 차량 화면으로 전달해주는 통신/HFP 표준 기능.",
+            fullExplanation = "전화 착신 시 스마트폰은 기본적으로 단순 'RING' 알림만 보내므로, 헤드셋/차량이 상대방 번호를 알기 위해 'AT+CLIP=1' 명령어로 번호 표시를 활성화합니다. 전화가 올 때마다 '+CLIP: \"01012345678\",129' 비동기 패킷이 전달되어 차량 계기판에 번호를 띄우거나 이어폰 TTS로 번호를 읽어줍니다. AOSP에서는 Telecom의 착신 이벤트를 HeadsetPhoneState/HeadsetStateMachine이 수신하여 연결된 기기들에 브로드캐스트합니다.",
+            relatedApis = listOf("AT+CLIP", "HeadsetPhoneState", "+CLIP URC", "TelephonyManager")
+        ),
+        GlossaryItem(
+            term = "CLCC <alpha> (Current Calls 통화 목록 및 상대방 이름 필드)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "진행 중인 통화 목록(+CLCC) 응답 규격의 마지막 필드로, 전화번호에 매핑된 상대방 이름(Alphanumeric text)을 의미함.",
+            fullExplanation = "3GPP TS 27.007 및 HFP 표준 규격 포맷은 '+CLCC: <idx>,<dir>,<status>,<mode>,<mpty>[,<number>,<type>[,<alpha>]]'입니다. 맨 끝 <alpha> 필드에 주소록에 매핑된 이름(예: \"홍길동\")이나 통신사 네트워크에서 전달된 상호명이 담깁니다. 차량(IVI) 시스템은 전체 주소록(PBAP)을 일일이 검색하지 않고도 이 <alpha> 값으로 계기판/내비게이션 화면에 이름을 즉시 표시할 수 있습니다.",
+            relatedApis = listOf("AT+CLCC", "HeadsetClccResponse", "3GPP TS 27.007", "Alphanumeric text")
+        ),
+        GlossaryItem(
+            term = "동적 CLCC <alpha> 갱신 & AOSP 핸들링 (통화 중 발신자 정보 변경)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "통화 도중 주소록 비동기 조회 완료, 스팸 앱 판정, 통신사 CNAP 지연 수신 등으로 이름(<alpha>)이 바뀔 때 AOSP가 이를 감지하고 차량/헤드셋에 전달하는 메커니즘.",
+            fullExplanation = "• 변경 원인: (1) ContactsProvider 백그라운드 쿼리 지연 완료 (2) CallScreeningService(스팸 필터) 클라우드 조회 결과 도착 (3) VoLTE/IMS 기지국 CNAP 지연 도착 (4) 착신 전환(COLP).\n\n• AOSP 감지 및 캐시 갱신: Telecom 프레임워크의 Call.Callback.onDetailsChanged() 콜백을 BluetoothInCallService가 감지하여, HeadsetPhoneState의 CLCC 응답 캐시(<alpha>)를 새 이름으로 즉시 갱신합니다.\n\n• 헤드셋 전파: CLCC는 헤드셋이 요청해야 응답하는 폴링 방식이므로, AOSP는 '+CIEV' 인디케이터나 '+CLIP'을 전송하여 헤드셋의 'AT+CLCC' 재폴링(Re-polling)을 유도하고 최신 <alpha>를 전달합니다. Android Automotive(차량)는 BluetoothHeadsetClient가 ACTION_CALL_CHANGED를 발행하여 계기판 UI를 즉시 리프레시합니다.",
+            relatedApis = listOf("Call.Callback.onDetailsChanged", "BluetoothInCallService", "HeadsetPhoneState", "BluetoothHeadsetClient.ACTION_CALL_CHANGED")
         )
     )
 }

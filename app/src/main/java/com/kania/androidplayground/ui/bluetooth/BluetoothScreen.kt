@@ -807,6 +807,20 @@ private fun AospComparisonTab() {
                 aospExplanation = "packages/modules/Bluetooth 내 HeadsetService, HeadsetStateMachine에서 AT 커맨드(ATA, AT+CHUP, AT+CLCC)를 처리하고 SCO/WBS 오디오 링크 및 텔레포니(Telecom) 연동을 직할 통제함. Android Automotive에서는 BluetoothHeadsetClient(@SystemApi)를 통해 스마트폰 통화를 원격 제어."
             ),
             AospComparisonItem(
+                category = "음성 통화 (HFP & Call)",
+                feature = "발신자 번호 표시 (CLIP) 제어",
+                publicStatus = "불가 (System/Telecom 전용)",
+                publicExplanation = "일반 앱은 AT+CLIP 설정이나 착신 시 전달되는 발신 번호 URC 패킷(+CLIP: \"번호\")을 직접 수신/제어 불가. 기본 다이얼러나 Telecom API만 통화 번호에 접근.",
+                aospExplanation = "Telecom/TelephonyManager 착신 이벤트를 수신한 HeadsetPhoneState가 헤드셋의 AT+CLIP=1 등록 여부를 확인하여 +CLIP: \"번호\" 비동기 패킷을 RFCOMM 채널로 브로드캐스트."
+            ),
+            AospComparisonItem(
+                category = "음성 통화 (HFP & Call)",
+                feature = "통화 목록 & 발신자 이름 (CLCC <alpha>) 동적 갱신",
+                publicStatus = "불가 (AOSP 내부 상태 머신 전용)",
+                publicExplanation = "일반 앱은 AT+CLCC 응답 스트림이나 <alpha> 필드(주소록 매핑 이름)를 직접 주입/변경할 수 없음.",
+                aospExplanation = "통화 도중 주소록 비동기 조회 완료, CallScreeningService(스팸 필터) 또는 IMS 네트워크 CNAP으로 이름이 변경되면 Telecom onDetailsChanged() -> BluetoothInCallService -> HeadsetPhoneState 캐시가 갱신됨. +CIEV 인디케이터나 +CLIP 재전송으로 헤드셋의 AT+CLCC 재폴링(Re-polling)을 유도하여 최신 <alpha>를 전달하며, Android Automotive(AAOS)는 ACTION_CALL_CHANGED로 계기판 UI를 즉시 리프레시함."
+            ),
+            AospComparisonItem(
                 category = "블루투스 스택",
                 feature = "Fluoride / Rust Bluetooth Stack",
                 publicStatus = "접근 불가",
@@ -842,6 +856,11 @@ private fun AospComparisonTab() {
                     )
                 }
             }
+        }
+
+        // HFP 통화 발신자 정보 전달 아키텍처 상세 카드
+        item {
+            HfpCallerInfoArchitectureCard()
         }
 
         items(comparisons) { item ->
@@ -911,6 +930,89 @@ private fun AospComparisonTab() {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HfpCallerInfoArchitectureCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "📞 HFP 심화: 발신자 정보 전달 (CLIP & CLCC <alpha>) 메커니즘",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Text(
+                text = "차량이나 블루투스 이어폰으로 전화가 올 때 번호와 이름이 표시되고, 통화 도중 정보가 동적으로 갱신되는 AOSP 내부 동작 원리입니다.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            HorizontalDivider()
+
+            Text(
+                text = "1. 발신자 번호 표시 (CLIP: Calling Line Identification)",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "• HFP 초기 연결 시 헤드셋/차량이 'AT+CLIP=1'을 전송하여 번호 표시를 활성화합니다.\n• 전화 수신 시 스마트폰은 단순 'RING' 외에 '+CLIP: \"01012345678\",129' 비동기 패킷(URC)을 보내 헤드셋 TTS나 차량 화면에 번호를 띄웁니다.",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "2. 통화 목록 및 상대방 이름 필드 (CLCC <alpha>)",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "• 표준 규격: +CLCC: <idx>,<dir>,<status>,<mode>,<mpty>,<number>,<type>,<alpha>\n• 맨 끝의 <alpha> 필드가 주소록에 매핑된 이름(예: \"홍길동\")입니다. 차량 IVI는 전체 주소록을 검색할 필요 없이 이 필드로 화면에 이름을 즉시 표시합니다.",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "3. 통화 도중 <alpha>가 동적으로 변경되는 시나리오",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "• 주소록(ContactsProvider) 비동기 쿼리가 뒤늦게 완료된 경우\n• T전화/후후 등 스팸 필터링 앱(CallScreeningService)의 판정 결과가 도착한 경우\n• 통신사 VoLTE/IMS 기지국의 CNAP(상호명) 패킷이 지연 수신된 경우\n• 대표번호에서 개인 내선으로 착신 전환(COLP)된 경우",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "4. AOSP 내부 감지 및 헤드셋 전파 흐름",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "• 감지: Telecom 프레임워크의 Call.Callback.onDetailsChanged() 발생\n• 캐시 갱신: BluetoothInCallService가 HeadsetPhoneState의 CLCC 응답 캐시(<alpha>)를 새 이름으로 즉각 교체\n• 재폴링 유도: CLCC는 폴링 방식이므로 AOSP가 '+CIEV' 인디케이터나 '+CLIP'을 전송하여 헤드셋의 'AT+CLCC' 재요청을 유도하고 새 <alpha>를 전달\n• 차량(AAOS): BluetoothHeadsetClient가 ACTION_CALL_CHANGED 인텐트를 발행하여 계기판 UI 즉시 리프레시",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF00796B)
+            )
         }
     }
 }
