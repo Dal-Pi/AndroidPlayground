@@ -42,3 +42,11 @@ data class AospComparisonItem(
     val publicExplanation: String,
     val aospExplanation: String
 )
+
+data class GlossaryItem(
+    val term: String,
+    val category: String,
+    val summary: String,
+    val fullExplanation: String,
+    val relatedApis: List<String> = emptyList()
+)
