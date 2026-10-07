@@ -30,8 +30,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kania.androidplayground.ui.LazyListPagingTestActivity
 import com.kania.androidplayground.ui.bluetooth.BluetoothTestActivity
-import com.kania.androidplayground.ui.theme.AndroidPlaygroundTheme
 import com.kania.androidplayground.ui.notification.NotificationActivity
+import com.kania.androidplayground.ui.theme.AndroidPlaygroundTheme
+import com.kania.androidplayground.ui.wifi.WifiTestActivity
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,6 +88,12 @@ private fun PlaygroundList(
             nameStringId = R.string.playground_bluetooth,
             onClick = {
                 context.startActivity(Intent(context, BluetoothTestActivity::class.java))
+            }
+        )
+        playgroundListItem(
+            nameStringId = R.string.playground_wifi,
+            onClick = {
+                context.startActivity(Intent(context, WifiTestActivity::class.java))
             }
         )
     }
