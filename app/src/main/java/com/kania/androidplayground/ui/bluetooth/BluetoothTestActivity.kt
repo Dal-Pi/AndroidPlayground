@@ -15,6 +15,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -35,6 +37,7 @@ class BluetoothTestActivity : ComponentActivity() {
 
     private var bluetoothManager: BluetoothManager? = null
     private var bluetoothAdapter: BluetoothAdapter? = null
+    private var audioManager: AudioManager? = null
 
     private var a2dpProfile: BluetoothA2dp? = null
     private var headsetProfile: BluetoothHeadset? = null
@@ -46,6 +49,7 @@ class BluetoothTestActivity : ComponentActivity() {
     private var adapterFeatures by mutableStateOf(AdapterFeatures())
     private val bondedDevices = mutableStateListOf<BondedDeviceItem>()
     private var profileStatus by mutableStateOf(ProfileStatus())
+    private var callAudioState by mutableStateOf(BluetoothCallAudioState())
 
     private var isScanning by mutableStateOf(false)
     private val scannedDevices = mutableStateListOf<ScannedBleDeviceItem>()
@@ -65,13 +69,14 @@ class BluetoothTestActivity : ComponentActivity() {
         refreshAllState()
     }
 
-    // Broadcast Receiver for Bluetooth state changes
+    // Broadcast Receiver for Bluetooth state changes & SCO Audio
     private val bluetoothReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 BluetoothAdapter.ACTION_STATE_CHANGED,
                 BluetoothAdapter.ACTION_SCAN_MODE_CHANGED,
-                BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
+                BluetoothDevice.ACTION_BOND_STATE_CHANGED,
+                AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED -> {
                     refreshAllState()
                 }
             }
@@ -132,6 +137,7 @@ class BluetoothTestActivity : ComponentActivity() {
 
         bluetoothManager = getSystemService(BluetoothManager::class.java)
         bluetoothAdapter = bluetoothManager?.adapter
+        audioManager = getSystemService(AudioManager::class.java)
 
         setupProfileProxies()
 
@@ -139,6 +145,7 @@ class BluetoothTestActivity : ComponentActivity() {
             addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
             addAction(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED)
             addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+            addAction(AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED)
         }
         registerReceiver(bluetoothReceiver, filter)
 
@@ -150,13 +157,15 @@ class BluetoothTestActivity : ComponentActivity() {
                     adapterFeatures = adapterFeatures,
                     bondedDevices = bondedDevices,
                     profileStatus = profileStatus,
+                    callAudioState = callAudioState,
                     scannedDevices = scannedDevices,
                     isScanning = isScanning,
                     onRequestPermissions = { requestRequiredPermissions() },
                     onRequestEnableBluetooth = { requestEnableBluetooth() },
                     onOpenBluetoothSettings = { openBluetoothSettings() },
                     onRefreshState = { refreshAllState() },
-                    onToggleBleScan = { toggleBleScan() }
+                    onToggleBleScan = { toggleBleScan() },
+                    onToggleCallAudio = { toggleBluetoothSco() }
                 )
             }
         }
@@ -172,6 +181,19 @@ class BluetoothTestActivity : ComponentActivity() {
         stopBleScan()
         unregisterReceiver(bluetoothReceiver)
         closeProfileProxies()
+
+        // 통화 오디오 라우팅 자원 정리
+        audioManager?.let { audio ->
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                audio.clearCommunicationDevice()
+            } else {
+                if (audio.isBluetoothScoOn) {
+                    audio.isBluetoothScoOn = false
+                    audio.stopBluetoothSco()
+                }
+            }
+            audio.mode = AudioManager.MODE_NORMAL
+        }
     }
 
     private fun setupProfileProxies() {
@@ -337,6 +359,7 @@ class BluetoothTestActivity : ComponentActivity() {
         }
 
         updateProfileStatus()
+        refreshCallAudioState()
     }
 
     @SuppressLint("MissingPermission")
@@ -466,6 +489,122 @@ class BluetoothTestActivity : ComponentActivity() {
                     rssi = result.rssi
                 )
             )
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun refreshCallAudioState() {
+        val audio = audioManager ?: return
+
+        val isScoAvailable = try {
+            audio.isBluetoothScoAvailableOffCall
+        } catch (e: Exception) {
+            false
+        }
+        val isScoOn = try {
+            audio.isBluetoothScoOn
+        } catch (e: Exception) {
+            false
+        }
+
+        val modeName = when (audio.mode) {
+            AudioManager.MODE_NORMAL -> "MODE_NORMAL (일반)"
+            AudioManager.MODE_RINGTONE -> "MODE_RINGTONE (벨소리)"
+            AudioManager.MODE_IN_CALL -> "MODE_IN_CALL (전화 통화)"
+            AudioManager.MODE_IN_COMMUNICATION -> "MODE_IN_COMMUNICATION (VoIP 통화)"
+            AudioManager.MODE_CALL_SCREENING -> "MODE_CALL_SCREENING (통화 심사)"
+            else -> "MODE_UNKNOWN (${audio.mode})"
+        }
+
+        var activeDevice = if (isScoOn) "Bluetooth SCO 연결됨" else "내장 스피커/기본 장치"
+        val availableHeadsets = mutableListOf<String>()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val commDevice = audio.communicationDevice
+            if (commDevice != null) {
+                activeDevice = "${commDevice.productName} [${commDevice.type.toDeviceTypeName()}]"
+            }
+
+            val devices = audio.availableCommunicationDevices
+            devices.filter {
+                it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                        it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                        it.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                        it.type == AudioDeviceInfo.TYPE_BLE_SPEAKER
+            }.forEach {
+                availableHeadsets.add("${it.productName} [${it.type.toDeviceTypeName()}]")
+            }
+        } else {
+            val devices = audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            devices.filter {
+                it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                        it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
+            }.forEach {
+                availableHeadsets.add("${it.productName} [${it.type.toDeviceTypeName()}]")
+            }
+        }
+
+        callAudioState = BluetoothCallAudioState(
+            isScoAvailable = isScoAvailable,
+            isScoOn = isScoOn,
+            audioModeName = modeName,
+            activeCommunicationDevice = activeDevice,
+            availableBluetoothHeadsets = availableHeadsets
+        )
+    }
+
+    @Suppress("DEPRECATION")
+    private fun toggleBluetoothSco() {
+        val audio = audioManager ?: return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val current = audio.communicationDevice
+            if (current != null && (current.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || current.type == AudioDeviceInfo.TYPE_BLE_HEADSET)) {
+                audio.clearCommunicationDevice()
+                audio.mode = AudioManager.MODE_NORMAL
+                Toast.makeText(this, "통화 오디오를 기본 장치로 복원했습니다.", Toast.LENGTH_SHORT).show()
+            } else {
+                val btDevice = audio.availableCommunicationDevices.firstOrNull {
+                    it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || it.type == AudioDeviceInfo.TYPE_BLE_HEADSET
+                }
+                if (btDevice != null) {
+                    audio.mode = AudioManager.MODE_IN_COMMUNICATION
+                    val success = audio.setCommunicationDevice(btDevice)
+                    if (success) {
+                        Toast.makeText(this, "블루투스 통화 장치 선택: ${btDevice.productName}", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this, "통화 장치 설정 실패", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(this, "연결 가능한 블루투스 헤드셋(SCO/BLE)이 없습니다.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            if (audio.isBluetoothScoOn) {
+                audio.isBluetoothScoOn = false
+                audio.stopBluetoothSco()
+                audio.mode = AudioManager.MODE_NORMAL
+                Toast.makeText(this, "Bluetooth SCO 링크 해제 요청", Toast.LENGTH_SHORT).show()
+            } else {
+                audio.mode = AudioManager.MODE_IN_COMMUNICATION
+                audio.startBluetoothSco()
+                audio.isBluetoothScoOn = true
+                Toast.makeText(this, "Bluetooth SCO 링크 시작 요청 (연결 대기)", Toast.LENGTH_SHORT).show()
+            }
+        }
+        refreshCallAudioState()
+    }
+
+    private fun Int.toDeviceTypeName(): String {
+        return when (this) {
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "BT_SCO"
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "BT_A2DP"
+            AudioDeviceInfo.TYPE_BLE_HEADSET -> "BLE_HEADSET"
+            AudioDeviceInfo.TYPE_BLE_SPEAKER -> "BLE_SPEAKER"
+            AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "EARPIECE"
+            AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "SPEAKER"
+            AudioDeviceInfo.TYPE_WIRED_HEADSET -> "WIRED_HEADSET"
+            else -> "TYPE_$this"
         }
     }
 }

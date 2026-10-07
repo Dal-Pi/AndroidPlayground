@@ -190,6 +190,64 @@ object BluetoothGlossaryData {
             summary = "시스템 이미지에 사전 탑재된 앱이나 동일한 시스템 서명(signature)을 가진 앱만 취득 가능한 특권 권한.",
             fullExplanation = "일반 개발자가 AndroidManifest.xml에 선언해도 시스템이 승인해주지 않는 `signature|privileged` 권한입니다. 시스템 설정 앱(Settings)이나 SystemUI처럼 기기를 완전히 제어해야 하는 시스템 애플리케이션만 이 권한을 통해 숨겨진 SystemApi를 호출할 수 있습니다.",
             relatedApis = listOf("android.permission.BLUETOOTH_PRIVILEGED", "Settings app", "BluetoothManagerService")
+        ),
+
+        // 5. Bluetooth 통화 (Call & HFP)
+        GlossaryItem(
+            term = "HFP (Hands-Free Profile)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "차량이나 무선 이어폰/헤드셋을 통해 전화를 걸고 받고 끊는 음성 통화 전용 블루투스 프로파일.",
+            fullExplanation = "음악 재생용인 A2DP(단방향 스트리밍)와 달리, 마이크 입력과 스피커 출력이 동시에 양방향으로 이루어지는 통화 전용 규격입니다. AT 커맨드 인터페이스를 통해 헤드셋의 버튼 입력(통화 수락/거절/음소거)과 통화 상태(수신 중, 통화 중, 배터리 잔량)를 스마트폰과 동기화합니다.",
+            relatedApis = listOf("BluetoothHeadset", "HeadsetService", "HeadsetStateMachine")
+        ),
+        GlossaryItem(
+            term = "HFP AG vs HF (Audio Gateway vs Hands-Free)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "HFP 프로파일의 두 가지 역할. AG는 스마트폰(통화망 연결 기기), HF는 이어폰/차량(핸즈프리 기기).",
+            fullExplanation = "• AG (Audio Gateway): 스마트폰처럼 셀룰러 전화망에 직접 연결되어 오디오를 제공하는 게이트웨이 역할.\n• HF (Hands-Free): 무선 이어폰이나 차량처럼 AG로부터 오디오를 수신하고 마이크를 통해 음성을 전송하는 핸즈프리 단말 역할.\n※ AOSP의 Android Automotive(AAOS)는 스마트폰의 전화를 받기 위해 안드로이드 OS 자체가 HF(Client) 모드로 동작합니다.",
+            relatedApis = listOf("BluetoothHeadset (AG 모드)", "BluetoothHeadsetClient (HF 모드, @SystemApi)")
+        ),
+        GlossaryItem(
+            term = "SCO / eSCO (Synchronous Connection-Oriented link)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "블루투스에서 지연 시간(Latency)에 민감한 실시간 음성 통화 데이터를 전송하기 위한 전용 동기식 물리 링크.",
+            fullExplanation = "일반 데이터(ACL)와 달리 패킷 타이밍이 엄격하게 보장되는 음성 전용 통로입니다. eSCO(Extended SCO)는 패킷 손실 시 재전송 메커니즘을 지원하여 음질을 크게 개선했습니다. 일반 앱은 AudioManager.startBluetoothSco() 또는 setCommunicationDevice()를 통해 이 링크를 열 수 있습니다.",
+            relatedApis = listOf("AudioManager.startBluetoothSco()", "AudioManager.setCommunicationDevice()", "AudioDeviceInfo.TYPE_BLUETOOTH_SCO")
+        ),
+        GlossaryItem(
+            term = "WBS (Wideband Speech) & mSBC 코덱",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "블루투스 통화 음질을 일반 전화(8kHz CVSD) 수준에서 HD 보이스(16kHz mSBC) 수준으로 대폭 개선하는 고음질 통화 규격.",
+            fullExplanation = "전통적인 블루투스 통화는 8kHz 대역폭의 답답한 음질(CVSD 코덱)을 썼으나, WBS는 mSBC 압축 코덱을 적용해 16kHz 샘플링 주파수로 VoLTE HD Voice 수준의 선명한 통화를 지원합니다. AOSP HFP 스택 내부에서 자동으로 코덱 협상(Codec Connection)을 수행합니다.",
+            relatedApis = listOf("HeadsetService", "HeadsetHfpHalInterface", "mSBC Codec")
+        ),
+        GlossaryItem(
+            term = "AT Commands (블루투스 통화 제어 명령어)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "HFP 규격에서 스마트폰과 헤드셋 간에 통화 상태 및 명령을 주고받는 텍스트 기반 제어 프로토콜.",
+            fullExplanation = "헤드셋 버튼을 누르면 스마트폰으로 전송되는 명령어 세트입니다.\n• ATA: 전화 받기 (Answer)\n• AT+CHUP: 전화 끊기 (Hang Up)\n• AT+CLCC: 현재 진행 중인 통화 목록 조회\n• AT+CIND: 신호 세기, 통화 상태, 배터리 지표 동기화\n• AT+VGS / AT+VGM: 스피커 및 마이크 볼륨 동기화\n일반 앱은 접근할 수 없으며 AOSP HeadsetStateMachine이 처리합니다.",
+            relatedApis = listOf("HeadsetAtPhonebook", "HeadsetClccResponse", "AT+CHLD (Call Hold)")
+        ),
+        GlossaryItem(
+            term = "In-Band Ringtone (인밴드 벨소리)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "스마트폰에 설정된 실제 벨소리 음원을 블루투스 헤드셋 스피커로 직접 스트리밍하여 울려주는 기능.",
+            fullExplanation = "과거에는 헤드셋 자체의 전자음 '삐-삐-' 소리만 울렸으나, In-Band Ringtone을 지원하면 스마트폰에서 재생되는 음악 벨소리가 SCO 채널을 통해 헤드셋으로 직접 전송됩니다. AOSP 설정 및 헤드셋 기능 협상(AT+BSIR)에 따라 활성화됩니다.",
+            relatedApis = listOf("BluetoothHeadset.isInbandRingingEnabled()", "AT+BSIR")
+        ),
+        GlossaryItem(
+            term = "BluetoothHeadsetClient (AOSP 차량용 통화 API)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "안드로이드 기기가 헤드셋(HF) 역할을 수행할 때 사용하는 AOSP 전용 @SystemApi.",
+            fullExplanation = "Android Automotive(AAOS) 탑재 차량에서 운전자 스마트폰과 블루투스로 연결되어, 차량 계기판/내비게이션 화면에서 전화를 걸고(dial()), 받고(acceptCall()), 통화 목록을 조회하는 핵심 시스템 서비스입니다. BLUETOOTH_PRIVILEGED 권한이 필요합니다.",
+            relatedApis = listOf("BluetoothHeadsetClient", "BluetoothHeadsetClientCall", "android.bluetooth.IBluetoothHeadsetClient")
+        ),
+        GlossaryItem(
+            term = "CCP & TBS (LE Audio 차세대 통화 프로파일)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "차세대 LE Audio 환경에서 통화 제어와 오디오 스트리밍을 처리하는 최신 GATT 기반 통화 프로토콜.",
+            fullExplanation = "기존 블루투스 클래식의 HFP/SCO를 대체하는 최신 규격입니다. 레거시 AT 커맨드 대신 GATT 기반의 TBS(Telephone Bearer Service, 서비스 UUID 0x184B)와 CCP(Call Control Profile)를 사용하여 다자 통화 제어, 상태 알림, 신규 LC3 코덱 기반의 초고음질 저전력 통화를 제공합니다.",
+            relatedApis = listOf("BluetoothLeCallControl", "BluetoothLeAudio", "packages/modules/Bluetooth/system/bta/le_audio")
         )
     )
 }

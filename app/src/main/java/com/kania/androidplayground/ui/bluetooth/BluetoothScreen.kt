@@ -78,13 +78,15 @@ fun BluetoothScreen(
     adapterFeatures: AdapterFeatures,
     bondedDevices: List<BondedDeviceItem>,
     profileStatus: ProfileStatus,
+    callAudioState: BluetoothCallAudioState,
     scannedDevices: List<ScannedBleDeviceItem>,
     isScanning: Boolean,
     onRequestPermissions: () -> Unit,
     onRequestEnableBluetooth: () -> Unit,
     onOpenBluetoothSettings: () -> Unit,
     onRefreshState: () -> Unit,
-    onToggleBleScan: () -> Unit
+    onToggleBleScan: () -> Unit,
+    onToggleCallAudio: () -> Unit
 ) {
     val activity = LocalContext.current as? Activity
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -154,12 +156,14 @@ fun BluetoothScreen(
                     adapterFeatures = adapterFeatures,
                     bondedDevices = bondedDevices,
                     profileStatus = profileStatus,
+                    callAudioState = callAudioState,
                     scannedDevices = scannedDevices,
                     isScanning = isScanning,
                     onRequestPermissions = onRequestPermissions,
                     onRequestEnableBluetooth = onRequestEnableBluetooth,
                     onOpenBluetoothSettings = onOpenBluetoothSettings,
-                    onToggleBleScan = onToggleBleScan
+                    onToggleBleScan = onToggleBleScan,
+                    onToggleCallAudio = onToggleCallAudio
                 )
                 1 -> AospComparisonTab()
                 2 -> GlossaryTab()
@@ -175,12 +179,14 @@ private fun PublicApiDemoTab(
     adapterFeatures: AdapterFeatures,
     bondedDevices: List<BondedDeviceItem>,
     profileStatus: ProfileStatus,
+    callAudioState: BluetoothCallAudioState,
     scannedDevices: List<ScannedBleDeviceItem>,
     isScanning: Boolean,
     onRequestPermissions: () -> Unit,
     onRequestEnableBluetooth: () -> Unit,
     onOpenBluetoothSettings: () -> Unit,
-    onToggleBleScan: () -> Unit
+    onToggleBleScan: () -> Unit,
+    onToggleCallAudio: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -221,7 +227,15 @@ private fun PublicApiDemoTab(
             )
         }
 
-        // 5. BLE 스캔 테스트 카드
+        // 5. 통화 오디오 제어 카드 (Call Audio & SCO)
+        item {
+            CallAudioCard(
+                callAudioState = callAudioState,
+                onToggleCallAudio = onToggleCallAudio
+            )
+        }
+
+        // 6. BLE 스캔 테스트 카드
         item {
             BleScanCard(
                 hasScanPermission = hasScanPermission,
@@ -569,6 +583,88 @@ private fun ProfileProxyCard(
 }
 
 @Composable
+private fun CallAudioCard(
+    callAudioState: BluetoothCallAudioState,
+    onToggleCallAudio: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.BluetoothConnected,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "통화 오디오 제어 (Call Audio & SCO)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Text(
+                text = "일반 3rd-party 앱(VoIP, WebRTC 등)은 HFP AT 커맨드를 직접 제어할 수 없으며, AudioManager의 SCO 링크 또는 setCommunicationDevice()를 통해 통화 음성을 블루투스로 라우팅합니다.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+
+            HorizontalDivider()
+
+            FeatureItem(label = "통화 외 SCO 지원 (isScoAvailableOffCall)", isSupported = callAudioState.isScoAvailable)
+            FeatureItem(label = "현재 블루투스 SCO 활성 상태 (isBluetoothScoOn)", isSupported = callAudioState.isScoOn)
+            FeatureItem(label = "현재 오디오 모드 (AudioManager.mode)", value = callAudioState.audioModeName)
+            FeatureItem(label = "현재 활성 통신 장치", value = callAudioState.activeCommunicationDevice)
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "사용 가능한 블루투스 통화 장치:",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (callAudioState.availableBluetoothHeadsets.isEmpty()) {
+                Text(
+                    text = "  - 연결/인식된 블루투스 통화 장치(SCO/BLE) 없음",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            } else {
+                callAudioState.availableBluetoothHeadsets.forEach { dev ->
+                    Text(text = "  • $dev", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Button(
+                onClick = onToggleCallAudio,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = if (callAudioState.isScoOn || callAudioState.activeCommunicationDevice.contains("BT_SCO")) {
+                        "블루투스 통화 오디오 해제 (스피커로 복원)"
+                    } else {
+                        "블루투스 통화 오디오 연결 (SCO 라우팅 요청)"
+                    }
+                )
+            }
+
+            Text(
+                text = "💡 Public API 한계 & AOSP 동작 원리:\n• Public API: 전화 수신(ATA)/발신/종료(AT+CHUP) 같은 Call 제어는 시스템 기본 전화(InCallService)와 통신사만 가능하며, 일반 앱은 오디오 입출력 통로(SCO)만 전환할 수 있습니다.\n• AOSP: packages/modules/Bluetooth의 HeadsetService/HeadsetStateMachine이 모뎀(Telecom)과 결합하여 HFP 프로토콜을 수행하며, Android Automotive(차량용)는 BluetoothHeadsetClient(@SystemApi)를 통해 스마트폰 통화를 원격 제어합니다.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
 private fun BleScanCard(
     hasScanPermission: Boolean,
     isScanning: Boolean,
@@ -702,6 +798,13 @@ private fun AospComparisonTab() {
                 publicStatus = "제한적 (규제 적용)",
                 publicExplanation = "화면이 꺼지면 백그라운드 BLE 스캔 제한, ScanFilter 필수 권장, ScanSettings 규제 적용.",
                 aospExplanation = "HCI Snoop 로그 캡처, 로우 레벨 HCI 소켓 통신, 블루투스 HAL(hardware abstraction layer) 직접 연동 가능."
+            ),
+            AospComparisonItem(
+                category = "음성 통화 (HFP & Call)",
+                feature = "Bluetooth Call 및 AT 커맨드 제어",
+                publicStatus = "불가 (오디오 라우팅만 가능)",
+                publicExplanation = "일반 앱은 HFP AT 커맨드(수신/발신/종료)나 통화 상태 머신에 접근 불가. VoIP 앱은 AudioManager(SCO 링크 또는 setCommunicationDevice)를 통한 마이크/스피커 통화 오디오 라우팅만 가능.",
+                aospExplanation = "packages/modules/Bluetooth 내 HeadsetService, HeadsetStateMachine에서 AT 커맨드(ATA, AT+CHUP, AT+CLCC)를 처리하고 SCO/WBS 오디오 링크 및 텔레포니(Telecom) 연동을 직할 통제함. Android Automotive에서는 BluetoothHeadsetClient(@SystemApi)를 통해 스마트폰 통화를 원격 제어."
             ),
             AospComparisonItem(
                 category = "블루투스 스택",
@@ -852,7 +955,7 @@ private fun GlossaryTab() {
     var selectedCategory by remember { mutableStateOf("전체") }
 
     val categories = remember {
-        listOf("전체", "무선 규격 & 하드웨어", "검색 & 연결 프로세스", "프로토콜 & 프로파일", "AOSP & 시스템 아키텍처")
+        listOf("전체", "무선 규격 & 하드웨어", "검색 & 연결 프로세스", "프로토콜 & 프로파일", "Bluetooth 통화 (Call & HFP)", "AOSP & 시스템 아키텍처")
     }
 
     val filteredItems = remember(searchQuery, selectedCategory) {

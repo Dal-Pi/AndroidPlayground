@@ -50,3 +50,12 @@ data class GlossaryItem(
     val fullExplanation: String,
     val relatedApis: List<String> = emptyList()
 )
+
+data class BluetoothCallAudioState(
+    val isScoAvailable: Boolean = false,
+    val isScoOn: Boolean = false,
+    val audioModeName: String = "MODE_NORMAL",
+    val activeCommunicationDevice: String = "기본 스피커 / 미설정",
+    val availableBluetoothHeadsets: List<String> = emptyList()
+)
+
