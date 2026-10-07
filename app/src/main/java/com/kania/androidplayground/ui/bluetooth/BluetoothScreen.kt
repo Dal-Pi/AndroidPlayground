@@ -821,6 +821,20 @@ private fun AospComparisonTab() {
                 aospExplanation = "통화 도중 주소록 비동기 조회 완료, CallScreeningService(스팸 필터) 또는 IMS 네트워크 CNAP으로 이름이 변경되면 Telecom onDetailsChanged() -> BluetoothInCallService -> HeadsetPhoneState 캐시가 갱신됨. +CIEV 인디케이터나 +CLIP 재전송으로 헤드셋의 AT+CLCC 재폴링(Re-polling)을 유도하여 최신 <alpha>를 전달하며, Android Automotive(AAOS)는 ACTION_CALL_CHANGED로 계기판 UI를 즉시 리프레시함."
             ),
             AospComparisonItem(
+                category = "음성 통화 (HFP & Call)",
+                feature = "통화 보류 (Call Hold / AT+CHLD)",
+                publicStatus = "불가 (System Telecom 전용)",
+                publicExplanation = "일반 앱은 Call.hold()나 HFP AT+CHLD(보류 및 통화 전환 스왑) 명령을 직접 내릴 수 없음.",
+                aospExplanation = "AOSP Telecom의 Call.hold()/unhold() 및 Call.STATE_HOLDING과 연동. 헤드셋의 AT+CHLD=2 명령을 HeadsetStateMachine이 수신하여 통화 보류 및 대기 통화 스왑을 처리하며, Android Automotive는 BluetoothHeadsetClient.holdCall()을 제공."
+            ),
+            AospComparisonItem(
+                category = "음성 통화 (HFP & Call)",
+                feature = "통화 시간 카운팅 & 상태 알림 (+CIEV)",
+                publicStatus = "제한적 (내부 타이머 의존)",
+                publicExplanation = "HFP에는 매초 통화 시간을 전송하는 API가 없음. VoIP 앱은 로컬 시스템 시계로 자체 카운팅해야 함.",
+                aospExplanation = "AOSP Telecom(Call.Details.getConnectTimeMillis)과 AAOS(BluetoothHeadsetClientCall.getCreationElapsedMilli)가 연결 타임스탬프를 제공하며, HFP는 +CIEV: 2, 1(통화 시작) 및 +CIEV: 2, 0(종료) 인디케이터로 클라이언트의 자체 타이머 시작/종료를 동기화."
+            ),
+            AospComparisonItem(
                 category = "블루투스 스택",
                 feature = "Fluoride / Rust Bluetooth Stack",
                 publicStatus = "접근 불가",
@@ -858,9 +872,9 @@ private fun AospComparisonTab() {
             }
         }
 
-        // HFP 통화 발신자 정보 전달 아키텍처 상세 카드
+        // HFP 통화 제어 & 이벤트 라이프사이클 아키텍처 상세 카드
         item {
-            HfpCallerInfoArchitectureCard()
+            HfpCallArchitectureCard()
         }
 
         items(comparisons) { item ->
@@ -935,7 +949,7 @@ private fun AospComparisonTab() {
 }
 
 @Composable
-private fun HfpCallerInfoArchitectureCard() {
+private fun HfpCallArchitectureCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -956,14 +970,14 @@ private fun HfpCallerInfoArchitectureCard() {
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "📞 HFP 심화: 발신자 정보 전달 (CLIP & CLCC <alpha>) 메커니즘",
+                    text = "📞 HFP 심화: 통화 제어 & 라이프사이클 아키텍처",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
             }
 
             Text(
-                text = "차량이나 블루투스 이어폰으로 전화가 올 때 번호와 이름이 표시되고, 통화 도중 정보가 동적으로 갱신되는 AOSP 내부 동작 원리입니다.",
+                text = "차량 및 이어폰과 안드로이드(AOSP) 간에 일어나는 통화 번호 식별, 동적 이름 갱신, 이벤트 동기화, 통화 보류 및 시간 카운팅 메커니즘입니다.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -971,45 +985,56 @@ private fun HfpCallerInfoArchitectureCard() {
             HorizontalDivider()
 
             Text(
-                text = "1. 발신자 번호 표시 (CLIP: Calling Line Identification)",
+                text = "1. 발신/수신 번호 식별 (CLIP vs COLP)",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "• HFP 초기 연결 시 헤드셋/차량이 'AT+CLIP=1'을 전송하여 번호 표시를 활성화합니다.\n• 전화 수신 시 스마트폰은 단순 'RING' 외에 '+CLIP: \"01012345678\",129' 비동기 패킷(URC)을 보내 헤드셋 TTS나 차량 화면에 번호를 띄웁니다.",
+                text = "• CLIP (발신자 번호): 수신(착신) 시 헤드셋의 'AT+CLIP=1' 설정에 따라 스마트폰이 '+CLIP: \"01012345678\",129' 비동기 URC 패킷을 보내 차량/이어폰에 번호 표시\n• COLP (연결선 번호): 내가 발신한 전화가 대표번호에서 담당자 개인 번호나 상담원 내선으로 착신 전환(Call Forwarding)되었을 때, 실제 연결된 번호를 '+COLP: \"번호\",129'로 실시간 통보",
                 style = MaterialTheme.typography.bodySmall
             )
 
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "2. 통화 목록 및 상대방 이름 필드 (CLCC <alpha>)",
+                text = "2. 통화 목록 & 상대방 이름 동적 갱신 (CLCC <alpha>)",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "• 표준 규격: +CLCC: <idx>,<dir>,<status>,<mode>,<mpty>,<number>,<type>,<alpha>\n• 맨 끝의 <alpha> 필드가 주소록에 매핑된 이름(예: \"홍길동\")입니다. 차량 IVI는 전체 주소록을 검색할 필요 없이 이 필드로 화면에 이름을 즉시 표시합니다.",
+                text = "• 규격: +CLCC: <idx>,<dir>,<status>,<mode>,<mpty>,<number>,<type>,<alpha>\n• 맨 끝 <alpha>가 주소록 이름입니다. 통화 도중 주소록 비동기 쿼리 완료, T전화/후후 등 스팸 필터링 앱(CallScreeningService) 판정, 기지국 CNAP 상호명이 뒤늦게 도착하면 Telecom onDetailsChanged() 콜백이 발생하여 AOSP CLCC 캐시가 갱신됩니다.\n• CLCC는 폴링 방식이므로 AOSP가 '+CIEV'나 '+CLIP'을 전송하여 헤드셋의 'AT+CLCC' 재요청(Re-polling)을 유도합니다.",
                 style = MaterialTheme.typography.bodySmall
             )
 
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "3. 통화 도중 <alpha>가 동적으로 변경되는 시나리오",
+                text = "3. HFP 상태 머신의 심장박동: 인디케이터 알림 (+CIEV)",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "• 주소록(ContactsProvider) 비동기 쿼리가 뒤늦게 완료된 경우\n• T전화/후후 등 스팸 필터링 앱(CallScreeningService)의 판정 결과가 도착한 경우\n• 통신사 VoLTE/IMS 기지국의 CNAP(상호명) 패킷이 지연 수신된 경우\n• 대표번호에서 개인 내선으로 착신 전환(COLP)된 경우",
+                text = "• 헤드셋/차량은 폰 화면을 볼 수 없으므로, '+CIEV: <ind>, <val>' 패킷으로 상태를 파악합니다.\n• 7대 지표: service(기지국망), call(통화중), callsetup(착/발신중), callheld(보류), signal(신호세기), roam(로밍), battchg(배터리)\n• 전화 착신 시 callsetup=1, 받으면 call=1/callsetup=0, 종료 시 call=0이 전달되어 헤드셋 상태 머신을 구동합니다.",
                 style = MaterialTheme.typography.bodySmall
             )
 
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "4. AOSP 내부 감지 및 헤드셋 전파 흐름",
+                text = "4. 통화 보류(Call Hold) 및 통화 전환 (AT+CHLD)",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "• 감지: Telecom 프레임워크의 Call.Callback.onDetailsChanged() 발생\n• 캐시 갱신: BluetoothInCallService가 HeadsetPhoneState의 CLCC 응답 캐시(<alpha>)를 새 이름으로 즉각 교체\n• 재폴링 유도: CLCC는 폴링 방식이므로 AOSP가 '+CIEV' 인디케이터나 '+CLIP'을 전송하여 헤드셋의 'AT+CLCC' 재요청을 유도하고 새 <alpha>를 전달\n• 차량(AAOS): BluetoothHeadsetClient가 ACTION_CALL_CHANGED 인텐트를 발행하여 계기판 UI 즉시 리프레시",
+                text = "• AOSP: Telecom Call.STATE_HOLDING(상태 3), Call.hold(), Call.unhold()와 연동\n• HFP AT 커맨드: 'AT+CHLD=2'로 현재 통화를 보류하고 대기 통화로 전환(스왑), 'AT+CHLD=3'으로 3자 회의 통화 병합\n• 차량(AAOS): BluetoothHeadsetClient에서 holdCall(), acceptCall(HOLD_AND_ACCEPT)을 제공하여 다이얼러에서 직관적으로 제어",
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "5. 통화 진행 시간(Call Duration) 카운팅 원리",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "• 무선 대역폭 및 배터리 절약을 위해 HFP에는 매초 시간을 전송하는 API가 없습니다.\n• 통화가 활성화(CIEV call=1)되는 시점을 기준점으로 잡고, 헤드셋/차량이 로컬 타이머로 0초부터 카운팅합니다.\n• AOSP는 Call.Details.getConnectTimeMillis() 및 AAOS BluetoothHeadsetClientCall.getCreationElapsedMilli()로 절대 연결 타임스탬프를 제공합니다.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF00796B)
             )

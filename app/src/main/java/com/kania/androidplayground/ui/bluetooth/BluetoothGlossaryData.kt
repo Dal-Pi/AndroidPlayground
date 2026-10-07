@@ -269,6 +269,34 @@ object BluetoothGlossaryData {
             summary = "통화 도중 주소록 비동기 조회 완료, 스팸 앱 판정, 통신사 CNAP 지연 수신 등으로 이름(<alpha>)이 바뀔 때 AOSP가 이를 감지하고 차량/헤드셋에 전달하는 메커니즘.",
             fullExplanation = "• 변경 원인: (1) ContactsProvider 백그라운드 쿼리 지연 완료 (2) CallScreeningService(스팸 필터) 클라우드 조회 결과 도착 (3) VoLTE/IMS 기지국 CNAP 지연 도착 (4) 착신 전환(COLP).\n\n• AOSP 감지 및 캐시 갱신: Telecom 프레임워크의 Call.Callback.onDetailsChanged() 콜백을 BluetoothInCallService가 감지하여, HeadsetPhoneState의 CLCC 응답 캐시(<alpha>)를 새 이름으로 즉시 갱신합니다.\n\n• 헤드셋 전파: CLCC는 헤드셋이 요청해야 응답하는 폴링 방식이므로, AOSP는 '+CIEV' 인디케이터나 '+CLIP'을 전송하여 헤드셋의 'AT+CLCC' 재폴링(Re-polling)을 유도하고 최신 <alpha>를 전달합니다. Android Automotive(차량)는 BluetoothHeadsetClient가 ACTION_CALL_CHANGED를 발행하여 계기판 UI를 즉시 리프레시합니다.",
             relatedApis = listOf("Call.Callback.onDetailsChanged", "BluetoothInCallService", "HeadsetPhoneState", "BluetoothHeadsetClient.ACTION_CALL_CHANGED")
+        ),
+        GlossaryItem(
+            term = "COLP (Connected Line Identification Presentation - 연결선 번호 표시)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "발신 전화 시 착신 전환이나 콜센터 분배 등으로 인해 실제로 연결된 최종 수신자 번호를 통보해주는 기능.",
+            fullExplanation = "CLIP이 걸려온 전화의 발신자 번호를 표시한다면, COLP는 내가 건 전화가 최종적으로 연결된 번호를 알려줍니다. 대표번호로 걸었으나 담당자 개인 휴대폰이나 상담원 직통 내선으로 착신 전환(Call Forwarding)된 경우, 수신자가 전화를 받는 순간 '+COLP: \"01098765432\", 129' 비동기 패킷이 전송되어 차량 화면에 실제 연결된 번호가 표시됩니다.",
+            relatedApis = listOf("AT+COLP", "+COLP URC", "Call Forwarding", "ITU-T V.250")
+        ),
+        GlossaryItem(
+            term = "CIEV (Indicator Event - HFP 상태 변화 비동기 알림)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "스마트폰의 통화 상태, 신호 세기, 배터리 잔량 등의 변화를 헤드셋/차량에 실시간 전송하는 HFP 핵심 이벤트 패킷.",
+            fullExplanation = "헤드셋/차량은 스마트폰 화면을 볼 수 없으므로, 모든 상태 변화를 '+CIEV: <ind>, <val>' 패킷으로 파악합니다.\n• 7대 핵심 인디케이터:\n- service: 기지국 연결 유무 (0/1)\n- call: 활성 통화 유무 (0/1)\n- callsetup: 전화 셋업 상태 (0:없음, 1:착신중, 2:발신중, 3:링백)\n- callheld: 통화 보류 상태 (0:없음, 1:보류중+통화중, 2:보류만 있음)\n- signal: 신호 감도 (0~5)\n- roam: 로밍 상태 (0/1)\n- battchg: 배터리 잔량 (0~5)\n전화가 오면 callsetup=1, 받으면 call=1/callsetup=0, 끊기면 call=0이 전송되어 상태 머신을 구동합니다.",
+            relatedApis = listOf("AT+CIND", "+CIEV URC", "AT+CMER", "HeadsetPhoneState.sendIndicator()")
+        ),
+        GlossaryItem(
+            term = "Call Hold & AT+CHLD (통화 보류 및 다자간 통화 제어)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "통화 중 대기 전화를 받거나 기존 통화를 보류(대기)하고 통화를 전환(스왑)하는 AOSP 및 HFP 핵심 기능.",
+            fullExplanation = "• AOSP Telecom: Call.STATE_HOLDING(상태 3), Call.hold(), Call.unhold() 메서드로 제어됩니다.\n• HFP AT+CHLD 명령어 세트:\n- AT+CHLD=0: 보류 중인 통화 종료 또는 통화 대기 전화 거절\n- AT+CHLD=1: 현재 통화 종료 후 보류/대기 통화 연결\n- AT+CHLD=2: [최다 사용] 현재 통화 보류(Hold) 및 대기/보류 통화로 전환(Swap)\n- AT+CHLD=3: 현재 통화와 보류 통화를 합쳐 3자 회의 통화(Conference)로 병합\n• 차량(AAOS): BluetoothHeadsetClient에서 holdCall(), acceptCall(HOLD_AND_ACCEPT)을 시스템 다이얼러에 제공합니다.",
+            relatedApis = listOf("AT+CHLD", "Call.hold()", "Call.STATE_HOLDING", "BluetoothHeadsetClient.holdCall()")
+        ),
+        GlossaryItem(
+            term = "Call Duration (블루투스 통화 시간 카운팅 메커니즘)",
+            category = "Bluetooth 통화 (Call & HFP)",
+            summary = "블루투스 통화 시 초 단위 시간 패킷을 보내지 않고, 통화 연결 시점을 기준으로 클라이언트가 자체 타이머로 카운팅하는 원리.",
+            fullExplanation = "무선 대역폭과 배터리 절약을 위해 블루투스 HFP에는 매초 시간을 중계하는 API가 없습니다. 대신 통화가 연결(CIEV call=1 또는 CLCC 상태 active)되는 순간을 기준점으로 잡고 헤드셋/차량이 로컬 타이머(SystemClock)로 0초부터 카운팅합니다. AOSP 내부에서는 Telecom의 Call.Details.getConnectTimeMillis()와 차량용 BluetoothHeadsetClientCall.getCreationElapsedMilli()를 통해 절대 연결 타임스탬프를 제공합니다.",
+            relatedApis = listOf("Call.Details.getConnectTimeMillis()", "BluetoothHeadsetClientCall.getCreationElapsedMilli()", "SystemClock.elapsedRealtime()")
         )
     )
 }
