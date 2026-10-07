@@ -222,11 +222,11 @@ object BluetoothGlossaryData {
             relatedApis = listOf("HeadsetService", "HeadsetHfpHalInterface", "mSBC Codec")
         ),
         GlossaryItem(
-            term = "AT Commands (블루투스 통화 제어 명령어)",
+            term = "AT Commands (Attention 명령어 & Hayes 모뎀 규격)",
             category = "Bluetooth 통화 (Call & HFP)",
-            summary = "HFP 규격에서 스마트폰과 헤드셋 간에 통화 상태 및 명령을 주고받는 텍스트 기반 제어 프로토콜.",
-            fullExplanation = "헤드셋 버튼을 누르면 스마트폰으로 전송되는 명령어 세트입니다.\n• ATA: 전화 받기 (Answer)\n• AT+CHUP: 전화 끊기 (Hang Up)\n• AT+CLCC: 현재 진행 중인 통화 목록 조회\n• AT+CIND: 신호 세기, 통화 상태, 배터리 지표 동기화\n• AT+VGS / AT+VGM: 스피커 및 마이크 볼륨 동기화\n일반 앱은 접근할 수 없으며 AOSP HeadsetStateMachine이 처리합니다.",
-            relatedApis = listOf("HeadsetAtPhonebook", "HeadsetClccResponse", "AT+CHLD (Call Hold)")
+            summary = "모뎀 제어 규격에서 유래한 텍스트 기반 명령어로 'Attention(주목하라)'의 약자. 블루투스 HFP 통화 제어의 표준 프로토콜로 사용됨.",
+            fullExplanation = "• 어원 및 유래: 1981년 Hayes 사가 개발한 스마트 모뎀 명령어 세트(Hayes Command Set)에서 시작되었습니다. 모뎀에 '지금부터 보낼 제어 명령에 집중(주목)하라'는 의미로 모든 명령 앞에 'AT' 접두사를 붙인 데서 유래했으며, 이후 3GPP 셀룰러 이동통신 표준을 거쳐 블루투스 HFP 규격으로 이어졌습니다.\n\n• HFP에 쓰이는 이유: 헤드셋이나 차량이 스마트폰의 통화를 제어하는 구조가 PC가 전화 모뎀을 제어하는 구조와 동일하기 때문에, 수십 년간 검증된 표준 텔레포니 명령어 체계를 블루투스 RFCOMM(가상 시리얼 포트) 채널 위에 그대로 채택했습니다.\n\n• 주요 명령어 세트:\n- ATA: Answer (전화 수락)\n- AT+CHUP: Call Hang Up (전화 종료 / 수신 거절)\n- ATD<번호>;: Dial (전화 발신)\n- AT+CLCC: Current Calls (현재 진행 중인 통화 목록 조회)\n- AT+CIND: Call Indicators (통화 상태, 신호 세기, 배터리 잔량 지표 동기화)\n- AT+VGS / AT+VGM: Voice Gain Speaker / Mic (스피커/마이크 볼륨 동기화)\n- AT+BRSF: Bluetooth Retrieve Supported Features (코덱 및 통화 기능 협상)\n\n• AOSP 처리 흐름: 이어폰 버튼을 누르면 'ATA\\r' 텍스트 패킷이 전송되고, packages/modules/Bluetooth 내 HeadsetAtPhonebook 및 HeadsetStateMachine이 이를 파싱하여 시스템 Telecom 프레임워크에 통화 수락 이벤트를 통보한 뒤 이어폰에 '\\r\\nOK\\r\\n'을 반환합니다. 일반 앱은 보안상 이 스트림에 직접 접근할 수 없습니다.",
+            relatedApis = listOf("HeadsetAtPhonebook", "HeadsetClccResponse", "3GPP TS 27.007", "Hayes command set")
         ),
         GlossaryItem(
             term = "In-Band Ringtone (인밴드 벨소리)",
