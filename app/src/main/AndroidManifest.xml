@@ -4,6 +4,29 @@
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Bluetooth permissions -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+
+    <uses-feature
+        android:name="android.hardware.bluetooth"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="false" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -37,6 +60,13 @@
             android:name=".ui.LazyListPagingTestActivity"
             android:exported="true"
             android:label="@string/playground_lazylistpaging"
+            android:theme="@style/Theme.AndroidPlayground">
+        </activity>
+
+        <activity
+            android:name=".ui.bluetooth.BluetoothTestActivity"
+            android:exported="true"
+            android:label="@string/playground_bluetooth"
             android:theme="@style/Theme.AndroidPlayground">
         </activity>
     </application>

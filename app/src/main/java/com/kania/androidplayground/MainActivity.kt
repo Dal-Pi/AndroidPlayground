@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kania.androidplayground.ui.LazyListPagingTestActivity
+import com.kania.androidplayground.ui.bluetooth.BluetoothTestActivity
 import com.kania.androidplayground.ui.theme.AndroidPlaygroundTheme
 import com.kania.androidplayground.ui.notification.NotificationActivity
 
@@ -52,7 +53,7 @@ private fun PlaygroundListScreen() {
                 title = {
                     Text(text = stringResource(R.string.app_name))
                 },
-                colors = TopAppBarDefaults.largeTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White,
@@ -80,6 +81,12 @@ private fun PlaygroundList(
             nameStringId = R.string.playground_lazylistpaging,
             onClick = {
                 context.startActivity(Intent(context, LazyListPagingTestActivity::class.java))
+            }
+        )
+        playgroundListItem(
+            nameStringId = R.string.playground_bluetooth,
+            onClick = {
+                context.startActivity(Intent(context, BluetoothTestActivity::class.java))
             }
         )
     }
