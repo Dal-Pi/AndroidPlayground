@@ -877,6 +877,11 @@ private fun AospComparisonTab() {
             HfpCallArchitectureCard()
         }
 
+        // AOSP 블루투스 핵심 브로드캐스트 인텐트 가이드 카드
+        item {
+            BluetoothBroadcastIntentsCard()
+        }
+
         items(comparisons) { item ->
             OutlinedCard(
                 modifier = Modifier.fillMaxWidth()
@@ -1037,6 +1042,97 @@ private fun HfpCallArchitectureCard() {
                 text = "• 무선 대역폭 및 배터리 절약을 위해 HFP에는 매초 시간을 전송하는 API가 없습니다.\n• 통화가 활성화(CIEV call=1)되는 시점을 기준점으로 잡고, 헤드셋/차량이 로컬 타이머로 0초부터 카운팅합니다.\n• AOSP는 Call.Details.getConnectTimeMillis() 및 AAOS BluetoothHeadsetClientCall.getCreationElapsedMilli()로 절대 연결 타임스탬프를 제공합니다.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF00796B)
+            )
+        }
+    }
+}
+
+@Composable
+private fun BluetoothBroadcastIntentsCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = "📡 AOSP 블루투스 핵심 브로드캐스트 인텐트(Broadcast Intent) 가이드",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+
+            Text(
+                text = "AOSP에서 connect()/disconnect() 호출 후 비동기 연결 결과 및 상태 변화를 감지할 때 사용하는 핵심 Broadcast Intent 모음입니다.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+
+            HorizontalDivider()
+
+            Text(
+                text = "1. 프로파일 연결 상태 인텐트 (가장 빈번하게 사용)",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = "• BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED: 미디어 오디오(A2DP) 프로파일 연결/해제 상태 변화\n• BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED: 통화 헤드셋(HFP) 제어 채널 연결/해제 상태 변화\n• BluetoothHeadsetClient.ACTION_CONNECTION_STATE_CHANGED: 차량(AAOS)이 스마트폰에 연결된 상태 변화 (@SystemApi)\n• 공통 Extra:\n  - EXTRA_STATE: 현재 상태 (STATE_DISCONNECTED, STATE_CONNECTING, STATE_CONNECTED, STATE_DISCONNECTING)\n  - EXTRA_PREVIOUS_STATE: 이전 상태 (실패 판정에 필수)\n  - EXTRA_DEVICE: 상태가 변경된 BluetoothDevice 객체",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "2. 💡 연결 실패 / 타임아웃 판정 메커니즘",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = "• AOSP 상태 머신(StateMachine)은 연결 실패 시 별도의 에러 인텐트를 보내지 않습니다.\n• 판정 공식: 'EXTRA_PREVIOUS_STATE == STATE_CONNECTING' 이면서 'EXTRA_STATE == STATE_DISCONNECTED' 라면 타임아웃(10~15초) 또는 기기 거절로 인한 '연결 실패'로 판정합니다.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "3. 통화 오디오 & 채널 제어 인텐트",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = "• AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED: 마이크/스피커 통화용 물리 SCO 오디오 링크 연결/해제 (STATE_CONNECTED / DISCONNECTED)\n• BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED: 헤드셋 SCO 음성 통로 상태 변화\n• BluetoothHeadsetClient.ACTION_CALL_CHANGED: 차량(AAOS) 환경에서 번호, 이름(alpha), 통화 보류 등의 상태가 바뀌었을 때 차량 UI 갱신용 인텐트 (@SystemApi)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "4. 하위 물리 링크 & 어댑터 상태 인텐트",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = "• BluetoothDevice.ACTION_ACL_CONNECTED / ACTION_ACL_DISCONNECTED: 프로파일 상위 연결의 기반이 되는 하위 L2CAP/HCI 물리 링크 연결/해제 이벤트\n• BluetoothDevice.ACTION_BOND_STATE_CHANGED: 페어링 본딩 상태 변화 (BOND_NONE, BOND_BONDING, BOND_BONDED)\n• BluetoothAdapter.ACTION_STATE_CHANGED: 블루투스 모듈 활성화/비활성화 (STATE_OFF, STATE_TURNING_ON, STATE_ON, STATE_TURNING_OFF)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
             )
         }
     }
