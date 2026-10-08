@@ -768,14 +768,14 @@ private fun AospComparisonTab() {
                 category = "어댑터 제어",
                 feature = "Bluetooth ON / OFF",
                 publicStatus = "제한적 (Intent 경유)",
-                publicExplanation = "ACTION_REQUEST_ENABLE 인텐트로 다이얼로그를 띄워 사용자 승인을 받아야 함. adapter.enable()/disable() 직접 호출은 Android 13+ 차단.",
+                publicExplanation = "ACTION_REQUEST_ENABLE Intent(앱 간 메시지 전달 객체)로 다이얼로그를 띄워 사용자 승인을 받아야 함. adapter.enable()/disable() 직접 호출은 Android 13+ 차단.",
                 aospExplanation = "IBluetooth.aidl / BluetoothManagerService 시스템 서비스에서 직접 스택을 제어하여 즉시 활성화/비활성화 가능."
             ),
             AospComparisonItem(
                 category = "페어링 관리",
                 feature = "기기 페어링 해제 (removeBond)",
                 publicStatus = "불가 (SystemApi)",
-                publicExplanation = "일반 앱은 createBond()로 페어링 요청만 가능. removeBond()는 @SystemApi 및 BLUETOOTH_PRIVILEGED 권한 필요하여 호출 불가.",
+                publicExplanation = "일반 앱은 createBond()로 페어링 요청만 가능. removeBond()는 @SystemApi(시스템 전용 API) 및 BLUETOOTH_PRIVILEGED 특권 권한 필요하여 호출 불가.",
                 aospExplanation = "설정 앱(Settings)이나 시스템 앱에서 자유롭게 페어링 정보를 제거하거나 강제 본딩 해제 가능."
             ),
             AospComparisonItem(
@@ -783,70 +783,70 @@ private fun AospComparisonTab() {
                 feature = "A2DP / Headset 강제 연결 (connect)",
                 publicStatus = "불가 (SystemApi)",
                 publicExplanation = "일반 앱은 getConnectedDevices() 등으로 '현재 연결 상태'만 조회 가능. connect(device) / disconnect(device) 메서드는 숨김(@hide) 처리됨.",
-                aospExplanation = "BluetoothA2dpService, BluetoothHeadsetService를 직접 호출하여 특정 기기로 강제 오디오 라우팅 및 연결/해제 가능."
+                aospExplanation = "A2DP(Advanced Audio Distribution Profile, 미디어 오디오) 및 Headset(HFP 통화 헤드셋) 서비스를 직접 호출하여 특정 기기로 강제 오디오 라우팅 및 연결/해제 가능."
             ),
             AospComparisonItem(
                 category = "MAC 주소 & 식별",
                 feature = "로컬 어댑터 MAC 주소 조회",
                 publicStatus = "불가 (마스킹)",
-                publicExplanation = "개인정보 보호 정책(Android 6.0+)으로 일반 앱에서 adapter.address 호출 시 항상 '02:00:00:00:00:00'을 반환함.",
-                aospExplanation = "System Server 및 네이티브 드라이버는 실제 NVRAM에 기록된 실제 하드웨어 MAC 주소를 취득/설정 가능."
+                publicExplanation = "개인정보 보호 정책(Android 6.0+)으로 일반 앱에서 adapter.address 호출 시 항상 MAC(Media Access Control, 기기 고유 물리 주소)을 '02:00:00:00:00:00'으로 마스킹하여 반환함.",
+                aospExplanation = "System Server 및 네이티브 드라이버는 실제 NVRAM(Non-Volatile RAM, 비휘발성 메모리)에 기록된 실제 하드웨어 MAC 주소를 취득/설정 가능."
             ),
             AospComparisonItem(
                 category = "블루투스 스캔",
                 feature = "Background Scan & HCI",
                 publicStatus = "제한적 (규제 적용)",
-                publicExplanation = "화면이 꺼지면 백그라운드 BLE 스캔 제한, ScanFilter 필수 권장, ScanSettings 규제 적용.",
-                aospExplanation = "HCI Snoop 로그 캡처, 로우 레벨 HCI 소켓 통신, 블루투스 HAL(hardware abstraction layer) 직접 연동 가능."
+                publicExplanation = "화면이 꺼지면 백그라운드 BLE(Bluetooth Low Energy, 저전력 블루투스) 스캔 제한, ScanFilter 필수 권장, ScanSettings 규제 적용.",
+                aospExplanation = "HCI(Host Controller Interface, 칩셋 통신 규격) Snoop 로그 캡처, 로우 레벨 HCI 소켓 통신, 블루투스 HAL(Hardware Abstraction Layer, 하드웨어 추상화 계층) 직접 연동 가능."
             ),
             AospComparisonItem(
                 category = "음성 통화 (HFP & Call)",
                 feature = "Bluetooth Call 및 AT 커맨드 제어",
                 publicStatus = "불가 (오디오 라우팅만 가능)",
-                publicExplanation = "일반 앱은 HFP AT 커맨드(수신/발신/종료)나 통화 상태 머신에 접근 불가. VoIP 앱은 AudioManager(SCO 링크 또는 setCommunicationDevice)를 통한 마이크/스피커 통화 오디오 라우팅만 가능.",
-                aospExplanation = "packages/modules/Bluetooth 내 HeadsetService, HeadsetStateMachine에서 AT 커맨드(ATA, AT+CHUP, AT+CLCC)를 처리하고 SCO/WBS 오디오 링크 및 텔레포니(Telecom) 연동을 직할 통제함. Android Automotive에서는 BluetoothHeadsetClient(@SystemApi)를 통해 스마트폰 통화를 원격 제어."
+                publicExplanation = "일반 앱은 HFP(Hands-Free Profile, 핸즈프리 통화)의 AT(Attention, 모뎀 제어 명령어) 커맨드(수신/발신/종료)나 통화 상태 머신에 접근 불가. VoIP(Voice over IP, 인터넷 전화) 앱은 AudioManager의 SCO(Synchronous Connection-Oriented, 음성 통화 링크) 또는 setCommunicationDevice를 통한 마이크/스피커 통화 오디오 라우팅만 가능.",
+                aospExplanation = "packages/modules/Bluetooth 내 HeadsetService, HeadsetStateMachine에서 AT 커맨드(ATA, AT+CHUP, AT+CLCC)를 처리하고 SCO/WBS(Wideband Speech, 16kHz 고음질 통화) 오디오 링크 및 텔레포니(Telecom) 연동을 직할 통제함. AAOS(Android Automotive OS, 차량용 안드로이드)에서는 BluetoothHeadsetClient(@SystemApi)를 통해 스마트폰 통화를 원격 제어."
             ),
             AospComparisonItem(
                 category = "음성 통화 (HFP & Call)",
                 feature = "발신자 번호 표시 (CLIP) 제어",
                 publicStatus = "불가 (System/Telecom 전용)",
-                publicExplanation = "일반 앱은 AT+CLIP 설정이나 착신 시 전달되는 발신 번호 URC 패킷(+CLIP: \"번호\")을 직접 수신/제어 불가. 기본 다이얼러나 Telecom API만 통화 번호에 접근.",
-                aospExplanation = "Telecom/TelephonyManager 착신 이벤트를 수신한 HeadsetPhoneState가 헤드셋의 AT+CLIP=1 등록 여부를 확인하여 +CLIP: \"번호\" 비동기 패킷을 RFCOMM 채널로 브로드캐스트."
+                publicExplanation = "일반 앱은 CLIP(Calling Line Identification Presentation, 발신자 번호 표시) 설정이나 착신 시 전달되는 발신 번호 URC(Unsolicited Result Code, 비동기 알림) 패킷(+CLIP: \"번호\")을 직접 수신/제어 불가. 기본 다이얼러나 Telecom API만 통화 번호에 접근.",
+                aospExplanation = "Telecom/TelephonyManager 착신 이벤트를 수신한 HeadsetPhoneState가 헤드셋의 AT+CLIP=1 등록 여부를 확인하여 +CLIP: \"번호\" 비동기 패킷을 RFCOMM(Radio Frequency Communication, 가상 시리얼 포트) 채널로 브로드캐스트."
             ),
             AospComparisonItem(
                 category = "음성 통화 (HFP & Call)",
                 feature = "통화 목록 & 발신자 이름 (CLCC <alpha>) 동적 갱신",
                 publicStatus = "불가 (AOSP 내부 상태 머신 전용)",
-                publicExplanation = "일반 앱은 AT+CLCC 응답 스트림이나 <alpha> 필드(주소록 매핑 이름)를 직접 주입/변경할 수 없음.",
-                aospExplanation = "통화 도중 주소록 비동기 조회 완료, CallScreeningService(스팸 필터) 또는 IMS 네트워크 CNAP으로 이름이 변경되면 Telecom onDetailsChanged() -> BluetoothInCallService -> HeadsetPhoneState 캐시가 갱신됨. +CIEV 인디케이터나 +CLIP 재전송으로 헤드셋의 AT+CLCC 재폴링(Re-polling)을 유도하여 최신 <alpha>를 전달하며, Android Automotive(AAOS)는 ACTION_CALL_CHANGED로 계기판 UI를 즉시 리프레시함."
+                publicExplanation = "일반 앱은 CLCC(Current Calls, 진행 중인 통화 목록) 응답 스트림이나 <alpha> 필드(주소록 매핑 이름)를 직접 주입/변경할 수 없음.",
+                aospExplanation = "통화 도중 주소록 비동기 조회 완료, CallScreeningService(스팸 필터) 또는 IMS(IP Multimedia Subsystem, VoLTE 통신망)의 CNAP(Calling Name Presentation, 발신자 이름 표시)으로 이름이 변경되면 Telecom onDetailsChanged() -> BluetoothInCallService -> HeadsetPhoneState 캐시가 갱신됨. +CIEV 인디케이터나 +CLIP 재전송으로 헤드셋의 AT+CLCC 재폴링(Re-polling)을 유도하여 최신 <alpha>를 전달하며, AAOS(Android Automotive OS, 차량용 안드로이드)는 ACTION_CALL_CHANGED로 계기판 UI를 즉시 리프레시함."
             ),
             AospComparisonItem(
                 category = "음성 통화 (HFP & Call)",
                 feature = "통화 보류 (Call Hold / AT+CHLD)",
                 publicStatus = "불가 (System Telecom 전용)",
-                publicExplanation = "일반 앱은 Call.hold()나 HFP AT+CHLD(보류 및 통화 전환 스왑) 명령을 직접 내릴 수 없음.",
-                aospExplanation = "AOSP Telecom의 Call.hold()/unhold() 및 Call.STATE_HOLDING과 연동. 헤드셋의 AT+CHLD=2 명령을 HeadsetStateMachine이 수신하여 통화 보류 및 대기 통화 스왑을 처리하며, Android Automotive는 BluetoothHeadsetClient.holdCall()을 제공."
+                publicExplanation = "일반 앱은 Call.hold()나 HFP AT+CHLD(Call Hold and Multiparty, 통화 보류 및 다자간 통화) 명령을 직접 내릴 수 없음.",
+                aospExplanation = "AOSP Telecom의 Call.hold()/unhold() 및 Call.STATE_HOLDING과 연동. 헤드셋의 AT+CHLD=2 명령을 HeadsetStateMachine이 수신하여 통화 보류 및 대기 통화 스왑을 처리하며, AAOS(Android Automotive OS, 차량용 안드로이드)는 BluetoothHeadsetClient.holdCall()을 제공."
             ),
             AospComparisonItem(
                 category = "음성 통화 (HFP & Call)",
                 feature = "통화 시간 카운팅 & 상태 알림 (+CIEV)",
                 publicStatus = "제한적 (내부 타이머 의존)",
                 publicExplanation = "HFP에는 매초 통화 시간을 전송하는 API가 없음. VoIP 앱은 로컬 시스템 시계로 자체 카운팅해야 함.",
-                aospExplanation = "AOSP Telecom(Call.Details.getConnectTimeMillis)과 AAOS(BluetoothHeadsetClientCall.getCreationElapsedMilli)가 연결 타임스탬프를 제공하며, HFP는 +CIEV: 2, 1(통화 시작) 및 +CIEV: 2, 0(종료) 인디케이터로 클라이언트의 자체 타이머 시작/종료를 동기화."
+                aospExplanation = "AOSP Telecom(Call.Details.getConnectTimeMillis)과 AAOS(BluetoothHeadsetClientCall.getCreationElapsedMilli)가 연결 타임스탬프를 제공하며, HFP는 CIEV(Cellular/Control Indicator Event, 통화 상태 지표 알림)인 +CIEV: 2, 1(통화 시작) 및 +CIEV: 2, 0(종료) 인디케이터로 클라이언트의 자체 타이머 시작/종료를 동기화."
             ),
             AospComparisonItem(
                 category = "전송 계층 & 물리 링크",
                 feature = "ACL 및 L2CAP 채널 직접 제어",
                 publicStatus = "제한적 (L2CAP Socket만 제공)",
-                publicExplanation = "일반 앱은 BluetoothDevice.createL2capChannel() 등으로 커스텀 L2CAP 소켓을 열 수 있으나, 시스템 레벨 ACL 링크 파라미터나 프로파일 CID 다중화는 직접 제어 불가.",
-                aospExplanation = "AOSP 네이티브 스택(Fluoride/Rust) 내 bta_av, bta_hf, bta_gatt 모듈이 L2CAP 레이어와 직접 인터페이스하며, HCI 레벨 ACL 링크 버퍼 및 QoS, 패킷 크기(MTU)를 시스템 정책에 따라 최적화."
+                publicExplanation = "일반 앱은 BluetoothDevice.createL2capChannel() 등으로 커스텀 L2CAP(Logical Link Control and Adaptation Protocol, 논리 링크 제어/적응 프로토콜) 소켓을 열 수 있으나, 시스템 레벨 ACL(Asynchronous Connection-Less, 비동기 데이터 물리 링크) 파라미터나 프로파일 CID(Channel Identifier, 채널 식별자) 다중화는 직접 제어 불가.",
+                aospExplanation = "AOSP 네이티브 스택(Fluoride/Rust) 내 bta_av, bta_hf, bta_gatt 모듈이 L2CAP 레이어와 직접 인터페이스하며, HCI 레벨 ACL 링크 버퍼 및 QoS(Quality of Service, 서비스 품질), 패킷 크기(MTU: Maximum Transmission Unit)를 시스템 정책에 따라 최적화."
             ),
             AospComparisonItem(
                 category = "블루투스 스택",
                 feature = "Fluoride / Rust Bluetooth Stack",
                 publicStatus = "접근 불가",
-                publicExplanation = "Android Framework의 Binder IPC 인터페이스를 통해서만 제한적으로 접근 가능.",
-                aospExplanation = "packages/modules/Bluetooth (Fluoride 스택 / AOSP Rust 스택), GD(Google Drops) 아키텍처 내부 코드 수정 및 커스텀 가능."
+                publicExplanation = "Android Framework의 Binder IPC(Inter-Process Communication, 프로세스 간 통신) 인터페이스를 통해서만 제한적으로 접근 가능.",
+                aospExplanation = "packages/modules/Bluetooth (Fluoride 스택 / AOSP Rust 스택), GD(Google Drops, 구글 블루투스 신규 아키텍처) 내부 코드 수정 및 커스텀 가능."
             )
         )
     }
@@ -871,7 +871,7 @@ private fun AospComparisonTab() {
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "일반 안드로이드 앱은 보안과 프라이버시(사용자 동의 없는 기기 제어/추적 방지)를 위해 Bluetooth API의 대부분의 핵심 제어 기능(강제 ON/OFF, removeBond, connect/disconnect)이 차단되어 있습니다.\n\nAOSP 레벨에서 Bluetooth를 다룰 때는 packages/modules/Bluetooth 내부 서비스 및 @SystemApi, BLUETOOTH_PRIVILEGED 권한을 사용하여 하드웨어와 프로파일을 완전히 제어하게 됩니다.",
+                        text = "일반 안드로이드 앱은 보안과 프라이버시(사용자 동의 없는 기기 제어/추적 방지)를 위해 Bluetooth API(Application Programming Interface)의 대부분의 핵심 제어 기능(강제 ON/OFF, removeBond, connect/disconnect)이 차단되어 있습니다.\n\nAOSP(Android Open Source Project, 안드로이드 오픈소스 프로젝트) 레벨에서 Bluetooth를 다룰 때는 packages/modules/Bluetooth 내부 서비스 및 @SystemApi(시스템 전용 API), BLUETOOTH_PRIVILEGED 특권 권한을 사용하여 하드웨어와 프로파일을 완전히 제어하게 됩니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -994,7 +994,7 @@ private fun HfpCallArchitectureCard() {
             }
 
             Text(
-                text = "차량 및 이어폰과 안드로이드(AOSP) 간에 일어나는 통화 번호 식별, 동적 이름 갱신, 이벤트 동기화, 통화 보류 및 시간 카운팅 메커니즘입니다.",
+                text = "차량 및 이어폰과 안드로이드(AOSP: Android Open Source Project) 간에 일어나는 통화 번호 식별, 동적 이름 갱신, 이벤트 동기화, 통화 보류 및 시간 카운팅 메커니즘입니다.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1007,7 +1007,7 @@ private fun HfpCallArchitectureCard() {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "• CLIP (발신자 번호): 수신(착신) 시 헤드셋의 'AT+CLIP=1' 설정에 따라 스마트폰이 '+CLIP: \"01012345678\",129' 비동기 URC 패킷을 보내 차량/이어폰에 번호 표시\n• COLP (연결선 번호): 내가 발신한 전화가 대표번호에서 담당자 개인 번호나 상담원 내선으로 착신 전환(Call Forwarding)되었을 때, 실제 연결된 번호를 '+COLP: \"번호\",129'로 실시간 통보",
+                text = "• CLIP(Calling Line Identification Presentation, 발신자 번호 표시): 수신(착신) 시 헤드셋의 'AT+CLIP=1' 설정에 따라 스마트폰이 '+CLIP: \"01012345678\",129' URC(Unsolicited Result Code, 비동기 알림) 패킷을 보내 차량/이어폰에 번호 표시\n• COLP(Connected Line Identification Presentation, 연결선 번호 표시): 내가 발신한 전화가 대표번호에서 담당자 개인 번호나 상담원 내선으로 착신 전환(Call Forwarding)되었을 때, 실제 연결된 번호를 '+COLP: \"번호\",129'로 실시간 통보",
                 style = MaterialTheme.typography.bodySmall
             )
 
@@ -1018,7 +1018,7 @@ private fun HfpCallArchitectureCard() {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "• 규격: +CLCC: <idx>,<dir>,<status>,<mode>,<mpty>,<number>,<type>,<alpha>\n• 맨 끝 <alpha>가 주소록 이름입니다. 통화 도중 주소록 비동기 쿼리 완료, T전화/후후 등 스팸 필터링 앱(CallScreeningService) 판정, 기지국 CNAP 상호명이 뒤늦게 도착하면 Telecom onDetailsChanged() 콜백이 발생하여 AOSP CLCC 캐시가 갱신됩니다.\n• CLCC는 폴링 방식이므로 AOSP가 '+CIEV'나 '+CLIP'을 전송하여 헤드셋의 'AT+CLCC' 재요청(Re-polling)을 유도합니다.",
+                text = "• 규격: +CLCC: <idx>,<dir>,<status>,<mode>,<mpty>,<number>,<type>,<alpha>\n• CLCC(Current Calls, 진행 중인 통화 목록)의 맨 끝 <alpha>가 주소록 이름입니다. 통화 도중 주소록 비동기 쿼리 완료, T전화/후후 등 스팸 필터링 앱(CallScreeningService) 판정, 기지국 CNAP(Calling Name Presentation, 발신자 이름 표시) 상호명이 뒤늦게 도착하면 Telecom onDetailsChanged() 콜백이 발생하여 AOSP CLCC 캐시가 갱신됩니다.\n• CLCC는 폴링 방식이므로 AOSP가 '+CIEV'나 '+CLIP'을 전송하여 헤드셋의 'AT+CLCC' 재요청(Re-polling)을 유도합니다.",
                 style = MaterialTheme.typography.bodySmall
             )
 
@@ -1029,7 +1029,7 @@ private fun HfpCallArchitectureCard() {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "• 헤드셋/차량은 폰 화면을 볼 수 없으므로, '+CIEV: <ind>, <val>' 패킷으로 상태를 파악합니다.\n• 7대 지표: service(기지국망), call(통화중), callsetup(착/발신중), callheld(보류), signal(신호세기), roam(로밍), battchg(배터리)\n• 전화 착신 시 callsetup=1, 받으면 call=1/callsetup=0, 종료 시 call=0이 전달되어 헤드셋 상태 머신을 구동합니다.",
+                text = "• 헤드셋/차량은 폰 화면을 볼 수 없으므로, CIEV(Cellular/Control Indicator Event, 통화 상태 지표 알림) 패킷인 '+CIEV: <ind>, <val>'로 상태를 파악합니다.\n• 7대 지표: service(기지국망), call(통화중), callsetup(착/발신중), callheld(보류), signal(신호세기), roam(로밍), battchg(배터리)\n• 전화 착신 시 callsetup=1, 받으면 call=1/callsetup=0, 종료 시 call=0이 전달되어 헤드셋 상태 머신을 구동합니다.",
                 style = MaterialTheme.typography.bodySmall
             )
 
@@ -1040,7 +1040,7 @@ private fun HfpCallArchitectureCard() {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "• AOSP: Telecom Call.STATE_HOLDING(상태 3), Call.hold(), Call.unhold()와 연동\n• HFP AT 커맨드: 'AT+CHLD=2'로 현재 통화를 보류하고 대기 통화로 전환(스왑), 'AT+CHLD=3'으로 3자 회의 통화 병합\n• 차량(AAOS): BluetoothHeadsetClient에서 holdCall(), acceptCall(HOLD_AND_ACCEPT)을 제공하여 다이얼러에서 직관적으로 제어",
+                text = "• AOSP: Telecom Call.STATE_HOLDING(상태 3), Call.hold(), Call.unhold()와 연동\n• HFP AT(Attention) 커맨드: CHLD(Call Hold and Multiparty) 명령어 중 'AT+CHLD=2'로 현재 통화를 보류하고 대기 통화로 전환(스왑), 'AT+CHLD=3'으로 3자 회의 통화 병합\n• 차량(AAOS: Android Automotive OS): BluetoothHeadsetClient에서 holdCall(), acceptCall(HOLD_AND_ACCEPT)을 제공하여 다이얼러에서 직관적으로 제어",
                 style = MaterialTheme.typography.bodySmall
             )
 
@@ -1051,7 +1051,7 @@ private fun HfpCallArchitectureCard() {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "• 무선 대역폭 및 배터리 절약을 위해 HFP에는 매초 시간을 전송하는 API가 없습니다.\n• 통화가 활성화(CIEV call=1)되는 시점을 기준점으로 잡고, 헤드셋/차량이 로컬 타이머로 0초부터 카운팅합니다.\n• AOSP는 Call.Details.getConnectTimeMillis() 및 AAOS BluetoothHeadsetClientCall.getCreationElapsedMilli()로 절대 연결 타임스탬프를 제공합니다.",
+                text = "• 무선 대역폭 및 배터리 절약을 위해 HFP(Hands-Free Profile)에는 매초 시간을 전송하는 API가 없습니다.\n• 통화가 활성화(CIEV call=1)되는 시점을 기준점으로 잡고, 헤드셋/차량이 로컬 타이머로 0초부터 카운팅합니다.\n• AOSP는 Call.Details.getConnectTimeMillis() 및 AAOS의 BluetoothHeadsetClientCall.getCreationElapsedMilli()로 절대 연결 타임스탬프를 제공합니다.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF00796B)
             )
@@ -1089,7 +1089,7 @@ private fun BluetoothBroadcastIntentsCard() {
             }
 
             Text(
-                text = "AOSP에서 connect()/disconnect() 호출 후 비동기 연결 결과 및 상태 변화를 감지할 때 사용하는 핵심 Broadcast Intent 모음입니다.",
+                text = "AOSP(Android Open Source Project)에서 connect()/disconnect() 호출 후 비동기 연결 결과 및 상태 변화를 감지할 때 사용하는 핵심 Broadcast Intent 모음입니다.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
@@ -1103,7 +1103,7 @@ private fun BluetoothBroadcastIntentsCard() {
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
             Text(
-                text = "• BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED: 미디어 오디오(A2DP) 프로파일 연결/해제 상태 변화\n• BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED: 통화 헤드셋(HFP) 제어 채널 연결/해제 상태 변화\n• BluetoothHeadsetClient.ACTION_CONNECTION_STATE_CHANGED: 차량(AAOS)이 스마트폰에 연결된 상태 변화 (@SystemApi)\n• 공통 Extra:\n  - EXTRA_STATE: 현재 상태 (STATE_DISCONNECTED, STATE_CONNECTING, STATE_CONNECTED, STATE_DISCONNECTING)\n  - EXTRA_PREVIOUS_STATE: 이전 상태 (실패 판정에 필수)\n  - EXTRA_DEVICE: 상태가 변경된 BluetoothDevice 객체",
+                text = "• BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED: 미디어 오디오(A2DP: Advanced Audio Distribution Profile) 프로파일 연결/해제 상태 변화\n• BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED: 통화 헤드셋(HFP: Hands-Free Profile) 제어 채널 연결/해제 상태 변화\n• BluetoothHeadsetClient.ACTION_CONNECTION_STATE_CHANGED: 차량(AAOS: Android Automotive OS)이 스마트폰에 연결된 상태 변화 (@SystemApi: 시스템 권한 필요 API)\n• 공통 Extra:\n  - EXTRA_STATE: 현재 상태 (STATE_DISCONNECTED, STATE_CONNECTING, STATE_CONNECTED, STATE_DISCONNECTING)\n  - EXTRA_PREVIOUS_STATE: 이전 상태 (실패 판정에 필수)\n  - EXTRA_DEVICE: 상태가 변경된 BluetoothDevice 객체",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
@@ -1129,7 +1129,7 @@ private fun BluetoothBroadcastIntentsCard() {
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
             Text(
-                text = "• AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED: 마이크/스피커 통화용 물리 SCO 오디오 링크 연결/해제 (STATE_CONNECTED / DISCONNECTED)\n• BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED: 헤드셋 SCO 음성 통로 상태 변화\n• BluetoothHeadsetClient.ACTION_CALL_CHANGED: 차량(AAOS) 환경에서 번호, 이름(alpha), 통화 보류 등의 상태가 바뀌었을 때 차량 UI 갱신용 인텐트 (@SystemApi)",
+                text = "• AudioManager.ACTION_SCO_AUDIO_STATE_UPDATED: 마이크/스피커 통화용 물리 SCO(Synchronous Connection-Oriented, 동기식 음성 전송 링크) 오디오 연결/해제 (STATE_CONNECTED / DISCONNECTED)\n• BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED: 헤드셋 SCO 음성 통로 상태 변화\n• BluetoothHeadsetClient.ACTION_CALL_CHANGED: 차량(AAOS) 환경에서 번호, 이름(alpha), 통화 보류 등의 상태가 바뀌었을 때 차량 UI 갱신용 인텐트 (@SystemApi)",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
@@ -1142,7 +1142,7 @@ private fun BluetoothBroadcastIntentsCard() {
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
             Text(
-                text = "• BluetoothDevice.ACTION_ACL_CONNECTED / ACTION_ACL_DISCONNECTED: 프로파일 상위 연결의 기반이 되는 하위 L2CAP/HCI 물리 링크 연결/해제 이벤트\n• BluetoothDevice.ACTION_BOND_STATE_CHANGED: 페어링 본딩 상태 변화 (BOND_NONE, BOND_BONDING, BOND_BONDED)\n• BluetoothAdapter.ACTION_STATE_CHANGED: 블루투스 모듈 활성화/비활성화 (STATE_OFF, STATE_TURNING_ON, STATE_ON, STATE_TURNING_OFF)",
+                text = "• BluetoothDevice.ACTION_ACL_CONNECTED / ACTION_ACL_DISCONNECTED: 프로파일 상위 연결의 기반이 되는 하위 ACL(Asynchronous Connection-Less, 비동기 데이터 물리 링크) 및 L2CAP(Logical Link Control and Adaptation Protocol, 논리 링크 제어 및 적응 프로토콜)/HCI(Host Controller Interface, 호스트-컨트롤러 인터페이스) 연결/해제 이벤트\n• BluetoothDevice.ACTION_BOND_STATE_CHANGED: 페어링 본딩 상태 변화 (BOND_NONE, BOND_BONDING, BOND_BONDED)\n• BluetoothAdapter.ACTION_STATE_CHANGED: 블루투스 모듈 활성화/비활성화 (STATE_OFF, STATE_TURNING_ON, STATE_ON, STATE_TURNING_OFF)",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
@@ -1180,7 +1180,7 @@ private fun BluetoothTransportLayerCard() {
             }
 
             Text(
-                text = "ACTION_ACL_CONNECTED와 프로파일 연결의 기반이 되는 무선 물리 링크(ACL)와 채널 다중화 계층(L2CAP)의 핵심 동작 원리입니다.",
+                text = "ACTION_ACL_CONNECTED와 프로파일 연결의 기반이 되는 무선 물리 링크 ACL(Asynchronous Connection-Less, 비동기 데이터 링크)과 채널 다중화 계층 L2CAP(Logical Link Control and Adaptation Protocol, 논리 링크 제어 및 적응 프로토콜)의 핵심 동작 원리입니다.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
@@ -1188,26 +1188,26 @@ private fun BluetoothTransportLayerCard() {
             HorizontalDivider()
 
             Text(
-                text = "1. ACL (Asynchronous Connection-Less 링크)",
+                text = "1. ACL(Asynchronous Connection-Less) 물리 데이터 링크",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Text(
-                text = "• 개념: 기기 간에 일반 데이터(음악, 제어, 통화 AT 명령 등)를 주고받기 위해 뚫어놓는 '기본 무선 데이터 고속도로(물리적 통신 파이프)'\n• ACTION_ACL_CONNECTED: 두 기기 간에 전파가 잡혀 하위 물리 링크가 성립되면 가장 먼저 발생하는 인텐트. A2DP, HFP 등 모든 상위 프로파일은 이 ACL 파이프가 먼저 뚫려야 동작 가능\n• 특징: 정해진 타임슬롯에 묶여 실시간 통화 음성만 전달하는 SCO(동기식)와 달리, 데이터가 생길 때마다 유연하게 패킷을 실어 나르는 비동기 통신 방식",
+                text = "• 개념: 기기 간에 일반 데이터(음악, 제어, 통화 AT: Attention 모뎀 제어 명령 등)를 주고받기 위해 뚫어놓는 '기본 무선 데이터 고속도로(물리적 통신 파이프)'\n• ACTION_ACL_CONNECTED: 두 기기 간에 전파가 잡혀 하위 물리 링크가 성립되면 가장 먼저 발생하는 인텐트. A2DP(Advanced Audio Distribution Profile, 미디어 오디오), HFP(Hands-Free Profile, 통화 헤드셋) 등 모든 상위 프로파일은 이 ACL 파이프가 먼저 뚫려야 동작 가능\n• 특징: 정해진 타임슬롯에 묶여 실시간 통화 음성만 전달하는 SCO(Synchronous Connection-Oriented, 동기식 음성 전송 링크)와 달리, 데이터가 생길 때마다 유연하게 패킷을 실어 나르는 비동기 통신 방식",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
 
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "2. L2CAP (Logical Link Control and Adaptation Protocol)",
+                text = "2. L2CAP(Logical Link Control and Adaptation Protocol) 논리 전송 계층",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Text(
-                text = "• 역할: 인터넷의 'TCP/UDP + 포트(Port)'와 동일한 핵심 논리 전송 계층\n• 채널 다중화 (Multiplexing): 단 하나의 무선 파이프(ACL) 안에서 음악(A2DP), 통화제어(HFP), 곡넘김(AVRCP), 배터리(GATT)가 섞이지 않도록 각각 고유한 채널 ID(CID)를 부여하여 교통정리\n• 패킷 분할 및 재조립 (SAR): 상위 앱의 큰 데이터를 무선 규격(MTU) 크기로 쪼개서 전송하고 수신 측에서 다시 조립",
+                text = "• 역할: 인터넷의 'TCP/UDP(전송 프로토콜) + 포트(Port)'와 동일한 핵심 논리 전송 계층\n• 채널 다중화 (Multiplexing): 단 하나의 무선 파이프(ACL) 안에서 음악(A2DP), 통화제어(HFP), 곡넘김(AVRCP: Audio/Video Remote Control Profile, 미디어 제어), 배터리/센서(GATT: Generic Attribute Profile, BLE 데이터 프로파일)가 섞이지 않도록 각각 고유한 채널 ID인 CID(Channel Identifier)를 부여하여 교통정리\n• 패킷 분할 및 재조립 (SAR: Segmentation and Reassembly): 상위 앱의 큰 데이터를 무선 규격 MTU(Maximum Transmission Unit, 최대 전송 단위) 크기로 쪼개서 전송하고 수신 측에서 다시 조립",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
@@ -1220,7 +1220,7 @@ private fun BluetoothTransportLayerCard() {
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Text(
-                text = "• [상위 프로파일] A2DP (음악) / HFP (통화) / AVRCP (제어) / GATT (BLE)\n   ↓ (채널 다중화 CID 및 분할/재조립)\n• [L2CAP 계층] 각 프로파일별 독립 논리 채널 분리\n   ↓ (단일 무선 파이프 수립: ACTION_ACL_CONNECTED)\n• [물리 데이터 링크] ACL Data Link\n   ↓\n• [HCI Controller] 블루투스 칩셋 및 Baseband 무선 전파",
+                text = "• [상위 프로파일] A2DP (음악) / HFP (통화) / AVRCP (제어) / GATT (BLE: Bluetooth Low Energy, 저전력 블루투스)\n   ↓ (채널 다중화 CID 및 분할/재조립 SAR)\n• [L2CAP 계층] 각 프로파일별 독립 논리 채널 분리\n   ↓ (단일 무선 파이프 수립: ACTION_ACL_CONNECTED)\n• [물리 데이터 링크] ACL Data Link\n   ↓\n• [HCI Controller] HCI(Host Controller Interface, 블루투스 컨트롤러 인터페이스) 및 Baseband 무선 전파",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
