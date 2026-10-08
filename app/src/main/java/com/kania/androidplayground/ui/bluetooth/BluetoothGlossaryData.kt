@@ -140,6 +140,20 @@ object BluetoothGlossaryData {
             fullExplanation = "표준 블루투스 SIG 규격(심박수 측정, 배터리 잔량 등)은 16비트 단축 UUID(예: 0x180D)를 사용하며, 제조사 고유 커스텀 서비스는 '0000xxxx-0000-1000-8000-00805F9B34FB' 형태의 완전한 128비트 UUID를 생성하여 충돌 없이 통신합니다.",
             relatedApis = listOf("java.util.UUID", "ParcelUuid", "BluetoothGattCharacteristic.uuid")
         ),
+        GlossaryItem(
+            term = "L2CAP (Logical Link Control and Adaptation Protocol)",
+            category = "프로토콜 & 프로파일",
+            summary = "하위 무선 파이프(ACL) 위에서 여러 상위 프로토콜을 분리/다중화하고 패킷을 분할 및 조립하는 핵심 전송 계층.",
+            fullExplanation = "인터넷의 TCP/UDP 포트와 유사한 역할을 합니다. 단 하나의 물리 링크(ACL) 위에서 A2DP(음악), HFP(통화), AVRCP(제어), GATT(데이터)가 서로 뒤섞이지 않도록 각각 고유한 채널 ID(CID)를 부여하여 다중화(Multiplexing)하고, 상위 데이터 크기를 무선 전송에 맞게 쪼개고 조립(Segmentation and Reassembly)합니다.",
+            relatedApis = listOf("BluetoothSocket.TYPE_L2CAP", "L2capChannel", "CID (Channel Identifier)")
+        ),
+        GlossaryItem(
+            term = "ACL (Asynchronous Connection-Less - 비동기 데이터 물리 링크)",
+            category = "프로토콜 & 프로파일",
+            summary = "블루투스 기기 간에 일반 데이터(음악, 제어, 파일 등)를 패킷 단위로 전송하기 위해 뚫어놓는 기본 무선 통신 파이프.",
+            fullExplanation = "통화 전용 동기식 링크(SCO)와 대칭되는 개념입니다. A2DP, HFP, HID 등 모든 상위 블루투스 프로파일은 반드시 이 ACL 링크가 먼저 연결되어야 동작합니다. 기기 간 무선 전파가 연결되면 가장 먼저 BluetoothDevice.ACTION_ACL_CONNECTED 브로드캐스트가 발생합니다. 'Connection-Less'는 연결이 없다는 뜻이 아니라 정해진 타임슬롯에 얽매이지 않고 유연하게 패킷을 보낸다는 통신 공학적 의미입니다.",
+            relatedApis = listOf("BluetoothDevice.ACTION_ACL_CONNECTED", "BluetoothDevice.ACTION_ACL_DISCONNECTED", "ACL Data Packet")
+        ),
 
         // 4. AOSP & 시스템 아키텍처
         GlossaryItem(

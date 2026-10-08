@@ -835,6 +835,13 @@ private fun AospComparisonTab() {
                 aospExplanation = "AOSP Telecom(Call.Details.getConnectTimeMillis)과 AAOS(BluetoothHeadsetClientCall.getCreationElapsedMilli)가 연결 타임스탬프를 제공하며, HFP는 +CIEV: 2, 1(통화 시작) 및 +CIEV: 2, 0(종료) 인디케이터로 클라이언트의 자체 타이머 시작/종료를 동기화."
             ),
             AospComparisonItem(
+                category = "전송 계층 & 물리 링크",
+                feature = "ACL 및 L2CAP 채널 직접 제어",
+                publicStatus = "제한적 (L2CAP Socket만 제공)",
+                publicExplanation = "일반 앱은 BluetoothDevice.createL2capChannel() 등으로 커스텀 L2CAP 소켓을 열 수 있으나, 시스템 레벨 ACL 링크 파라미터나 프로파일 CID 다중화는 직접 제어 불가.",
+                aospExplanation = "AOSP 네이티브 스택(Fluoride/Rust) 내 bta_av, bta_hf, bta_gatt 모듈이 L2CAP 레이어와 직접 인터페이스하며, HCI 레벨 ACL 링크 버퍼 및 QoS, 패킷 크기(MTU)를 시스템 정책에 따라 최적화."
+            ),
+            AospComparisonItem(
                 category = "블루투스 스택",
                 feature = "Fluoride / Rust Bluetooth Stack",
                 publicStatus = "접근 불가",
@@ -880,6 +887,11 @@ private fun AospComparisonTab() {
         // AOSP 블루투스 핵심 브로드캐스트 인텐트 가이드 카드
         item {
             BluetoothBroadcastIntentsCard()
+        }
+
+        // 블루투스 전송 계층 (ACL & L2CAP) 아키텍처 상세 카드
+        item {
+            BluetoothTransportLayerCard()
         }
 
         items(comparisons) { item ->
@@ -1133,6 +1145,84 @@ private fun BluetoothBroadcastIntentsCard() {
                 text = "• BluetoothDevice.ACTION_ACL_CONNECTED / ACTION_ACL_DISCONNECTED: 프로파일 상위 연결의 기반이 되는 하위 L2CAP/HCI 물리 링크 연결/해제 이벤트\n• BluetoothDevice.ACTION_BOND_STATE_CHANGED: 페어링 본딩 상태 변화 (BOND_NONE, BOND_BONDING, BOND_BONDED)\n• BluetoothAdapter.ACTION_STATE_CHANGED: 블루투스 모듈 활성화/비활성화 (STATE_OFF, STATE_TURNING_ON, STATE_ON, STATE_TURNING_OFF)",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun BluetoothTransportLayerCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Text(
+                    text = "🔗 블루투스 하위 전송 계층: ACL & L2CAP 아키텍처",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+
+            Text(
+                text = "ACTION_ACL_CONNECTED와 프로파일 연결의 기반이 되는 무선 물리 링크(ACL)와 채널 다중화 계층(L2CAP)의 핵심 동작 원리입니다.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+
+            HorizontalDivider()
+
+            Text(
+                text = "1. ACL (Asynchronous Connection-Less 링크)",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Text(
+                text = "• 개념: 기기 간에 일반 데이터(음악, 제어, 통화 AT 명령 등)를 주고받기 위해 뚫어놓는 '기본 무선 데이터 고속도로(물리적 통신 파이프)'\n• ACTION_ACL_CONNECTED: 두 기기 간에 전파가 잡혀 하위 물리 링크가 성립되면 가장 먼저 발생하는 인텐트. A2DP, HFP 등 모든 상위 프로파일은 이 ACL 파이프가 먼저 뚫려야 동작 가능\n• 특징: 정해진 타임슬롯에 묶여 실시간 통화 음성만 전달하는 SCO(동기식)와 달리, 데이터가 생길 때마다 유연하게 패킷을 실어 나르는 비동기 통신 방식",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "2. L2CAP (Logical Link Control and Adaptation Protocol)",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Text(
+                text = "• 역할: 인터넷의 'TCP/UDP + 포트(Port)'와 동일한 핵심 논리 전송 계층\n• 채널 다중화 (Multiplexing): 단 하나의 무선 파이프(ACL) 안에서 음악(A2DP), 통화제어(HFP), 곡넘김(AVRCP), 배터리(GATT)가 섞이지 않도록 각각 고유한 채널 ID(CID)를 부여하여 교통정리\n• 패킷 분할 및 재조립 (SAR): 상위 앱의 큰 데이터를 무선 규격(MTU) 크기로 쪼개서 전송하고 수신 측에서 다시 조립",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "3. 계층 구조 및 연결 라이프사이클 흐름",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+            Text(
+                text = "• [상위 프로파일] A2DP (음악) / HFP (통화) / AVRCP (제어) / GATT (BLE)\n   ↓ (채널 다중화 CID 및 분할/재조립)\n• [L2CAP 계층] 각 프로파일별 독립 논리 채널 분리\n   ↓ (단일 무선 파이프 수립: ACTION_ACL_CONNECTED)\n• [물리 데이터 링크] ACL Data Link\n   ↓\n• [HCI Controller] 블루투스 칩셋 및 Baseband 무선 전파",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
             )
         }
     }
