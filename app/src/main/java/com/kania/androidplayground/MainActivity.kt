@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kania.androidplayground.ui.LazyListPagingTestActivity
 import com.kania.androidplayground.ui.bluetooth.BluetoothTestActivity
+import com.kania.androidplayground.ui.deviceinfo.DeviceInfoActivity
 import com.kania.androidplayground.ui.notification.NotificationActivity
 import com.kania.androidplayground.ui.theme.AndroidPlaygroundTheme
 import com.kania.androidplayground.ui.wifi.WifiTestActivity
@@ -72,6 +73,12 @@ private fun PlaygroundList(
 ) {
     val context = LocalContext.current
     LazyColumn(modifier = modifier) {
+        playgroundListItem(
+            nameStringId = R.string.playground_device_info,
+            onClick = {
+                context.startActivity(Intent(context, DeviceInfoActivity::class.java))
+            }
+        )
         playgroundListItem(
             nameStringId = R.string.playground_notification,
             onClick = {

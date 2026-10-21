@@ -61,6 +61,13 @@
         </activity>
 
         <activity
+            android:name=".ui.deviceinfo.DeviceInfoActivity"
+            android:exported="true"
+            android:label="@string/playground_device_info"
+            android:theme="@style/Theme.AndroidPlayground">
+        </activity>
+
+        <activity
             android:name=".ui.notification.NotificationActivity"
             android:exported="true"
             android:label="@string/playground_notification"
