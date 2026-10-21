@@ -168,12 +168,7 @@ fun DeviceInfoScreen(
 
                 // 카테고리별 섹션 카드
                 items(filteredGroups) { group ->
-                    CategorySectionCard(
-                        group = group,
-                        onItemClick = { item ->
-                            copyToClipboard(context, item.label, item.value)
-                        }
-                    )
+                    CategorySectionCard(group = group)
                 }
             }
         }
@@ -273,8 +268,7 @@ private fun SummaryBadge(
 
 @Composable
 private fun CategorySectionCard(
-    group: DeviceCategoryGroup,
-    onItemClick: (DeviceInfoItem) -> Unit
+    group: DeviceCategoryGroup
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -286,7 +280,7 @@ private fun CategorySectionCard(
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // 헤더
             Row(
@@ -316,19 +310,16 @@ private fun CategorySectionCard(
 
             HorizontalDivider()
 
-            // 세부 항목들
+            // 세부 항목들 (각 항목은 자체 약한 구분선 및 코드/adb 블록 포함)
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 group.items.forEachIndexed { index, item ->
-                    InfoItemRow(
-                        item = item,
-                        onClick = { onItemClick(item) }
-                    )
+                    InfoItemRow(item = item)
                     if (index < group.items.lastIndex) {
                         HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 2.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -339,17 +330,22 @@ private fun CategorySectionCard(
 
 @Composable
 private fun InfoItemRow(
-    item: DeviceInfoItem,
-    onClick: () -> Unit
+    item: DeviceInfoItem
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(vertical = 4.dp)
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
+        // 1. 메인 정보 행 (라벨, 설명, 값)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    copyToClipboard(context, item.label, item.value, "${item.label} 값 복사됨: ${item.value}")
+                }
+                .padding(vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
@@ -387,18 +383,92 @@ private fun InfoItemRow(
                 )
                 Icon(
                     imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "복사",
+                    contentDescription = "값 복사",
                     tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
                     modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+
+        // 2. 약한 구분선 1 및 API 소스 코드 설명 (Monospace)
+        if (!item.codeSnippet.isNullOrEmpty()) {
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                thickness = 0.5.dp
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        copyToClipboard(context, "API 코드", item.codeSnippet, "API 코드 복사됨: ${item.codeSnippet}")
+                    }
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = item.codeSnippet,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = "API 복사",
+                    tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+        }
+
+        // 3. 약한 구분선 2 및 ADB 명령어 설명 (Monospace, 존재할 때만 표시)
+        if (!item.adbCommand.isNullOrEmpty()) {
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                thickness = 0.5.dp
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        copyToClipboard(context, "ADB 커맨드", item.adbCommand, "ADB 명령어 복사됨: ${item.adbCommand}")
+                    }
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = item.adbCommand,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = "ADB 복사",
+                    tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    modifier = Modifier.size(12.dp)
                 )
             }
         }
     }
 }
 
-private fun copyToClipboard(context: Context, label: String, value: String) {
+private fun copyToClipboard(context: Context, label: String, textToCopy: String, toastMessage: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-    val clip = ClipData.newPlainText(label, value)
+    val clip = ClipData.newPlainText(label, textToCopy)
     clipboard?.setPrimaryClip(clip)
-    Toast.makeText(context, "$label 복사됨: $value", Toast.LENGTH_SHORT).show()
+    Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
 }

@@ -62,7 +62,9 @@ data class DeviceInfoItem(
     val label: String,
     val value: String,
     val description: String? = null,
-    val isMonospace: Boolean = false
+    val isMonospace: Boolean = false,
+    val codeSnippet: String? = null,
+    val adbCommand: String? = null
 )
 
 /**
