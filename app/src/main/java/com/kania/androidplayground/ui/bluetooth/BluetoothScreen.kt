@@ -1,6 +1,7 @@
 package com.kania.androidplayground.ui.bluetooth
 
 import android.app.Activity
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,6 +50,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -90,7 +92,7 @@ fun BluetoothScreen(
 ) {
     val activity = LocalContext.current as? Activity
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Public API 실습", "AOSP vs Public 비교", "주요 용어집")
+    val tabs = listOf("Public API 실습", "AOSP 시스템 API (userdebug 전용)", "주요 용어집")
 
     Scaffold(
         topBar = {
@@ -856,6 +858,16 @@ private fun AospComparisonTab() {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // 1. 디바이스 환경 감지 & 시스템 API 안전 가드 카드
+        item {
+            SystemEnvironmentGuardCard()
+        }
+
+        // 2. 시스템 API 호출 시뮬레이션 & 안전 가드 카드
+        item {
+            SystemApiActionCard()
+        }
+
         item {
             Card(
                 colors = CardDefaults.cardColors(
@@ -1529,4 +1541,192 @@ private fun GlossaryCard(item: GlossaryItem) {
         }
     }
 }
+
+@Composable
+private fun SystemEnvironmentGuardCard() {
+    val isSystemEnv = remember { SystemEnvironmentChecker.isSystemDevelopmentEnvironment() }
+    val isEmulator = remember { SystemEnvironmentChecker.isEmulator() }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSystemEnv) {
+                MaterialTheme.colorScheme.tertiaryContainer
+            } else {
+                Color(0xFFFFEBEE) // 일반 폰: 붉은 경고 배경
+            }
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = if (isSystemEnv) Icons.Default.CheckCircle else Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = if (isSystemEnv) MaterialTheme.colorScheme.onTertiaryContainer else Color(0xFFC62828),
+                    modifier = Modifier.size(28.dp)
+                )
+                Column {
+                    Text(
+                        text = if (isSystemEnv) {
+                            "✅ AOSP 시스템 개발 환경 감지됨"
+                        } else {
+                            "🚫 일반 스마트폰(User ROM) 환경 감지됨"
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSystemEnv) MaterialTheme.colorScheme.onTertiaryContainer else Color(0xFFC62828)
+                    )
+                    Text(
+                        text = if (isSystemEnv) {
+                            if (isEmulator) "가상머신 에뮬레이터 (Platform Key & priv-app 가능)" else "userdebug/eng 기기"
+                        } else {
+                            "시스템 API(@SystemApi) 및 특권 권한 자동 차단 (Protected Mode)"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isSystemEnv) MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f) else Color(0xFFB71C1C)
+                    )
+                }
+            }
+
+            HorizontalDivider(
+                color = if (isSystemEnv) MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.2f) else Color(0xFFFFCDD2)
+            )
+
+            Text(
+                text = if (isSystemEnv) {
+                    "이 디바이스는 시스템 개발 환경입니다. 시스템 서명 및 /system/priv-app/ 권한 부여 시 BLUETOOTH_PRIVILEGED 특권 API를 호출할 수 있습니다."
+                } else {
+                    "안드로이드 OS 보안 정책상 일반 상용 스마트폰(User build)에서는 @SystemApi 및 BLUETOOTH_PRIVILEGED 시스템 서명 권한이 엄격히 차단됩니다.\n\n일반 폰에서 시스템 API 호출 시 발생할 수 있는 SecurityException 또는 NoClassDefFoundError 크래시를 방지하기 위해, 시스템 제어 API 동작이 안전하게 차단/비활성화되었습니다. (AOSP userdebug 빌드 에뮬레이터 환경에서만 실제 동작 가능)"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isSystemEnv) MaterialTheme.colorScheme.onTertiaryContainer else Color(0xFF424242)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SystemApiActionCard() {
+    val context = LocalContext.current
+    val isSystemEnv = remember { SystemEnvironmentChecker.isSystemDevelopmentEnvironment() }
+    var executionResultText by remember { mutableStateOf<String?>(null) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "🧪 시스템 API 호출 시뮬레이션 & 안전 가드",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Text(
+                text = "일반 스마트폰에서는 시스템 권한 부족으로 크래시가 발생하는 핵심 시스템 API들을 안전하게 테스트합니다. 일반 폰에서는 사전에 차단되어 절대 튕기지 않습니다.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
+            )
+
+            HorizontalDivider()
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = {
+                        val result = BluetoothSystemApiExecutor.executeRemoveBond(null)
+                        executionResultText = result.message
+                        Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSystemEnv) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                    )
+                ) {
+                    Text(
+                        text = "removeBond()",
+                        fontSize = 11.sp
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        val result = BluetoothSystemApiExecutor.executeA2dpConnect(null)
+                        executionResultText = result.message
+                        Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSystemEnv) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                    )
+                ) {
+                    Text(
+                        text = "connect()",
+                        fontSize = 11.sp
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        val result = BluetoothSystemApiExecutor.checkHeadsetClientAvailability()
+                        executionResultText = result.message
+                        Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSystemEnv) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                    )
+                ) {
+                    Text(
+                        text = "HeadsetClient",
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
+            if (!executionResultText.isNullOrEmpty()) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = executionResultText ?: "",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(10.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
 
