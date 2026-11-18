@@ -3,6 +3,8 @@
 
     <string name="playground_device_info">DeviceInfo</string>
     <string name="playground_battery">Battery (충전 &amp; 전력 W)</string>
+    <string name="playground_developer_settings">Developer Settings (토글 &amp; 타일)</string>
+    <string name="tile_usb_debugging">USB 디버깅</string>
     <string name="playground_notification">Notification</string>
     <string name="playground_lazylistpaging">LazyList Paging</string>
     <string name="playground_datetime">DateTime</string>

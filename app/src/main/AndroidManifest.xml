@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
 
     <!-- Bluetooth permissions -->
     <uses-permission
@@ -73,6 +76,25 @@
             android:label="@string/playground_battery"
             android:theme="@style/Theme.AndroidPlayground">
         </activity>
+
+        <activity
+            android:name=".ui.devsettings.DeveloperSettingsActivity"
+            android:exported="true"
+            android:label="@string/playground_developer_settings"
+            android:theme="@style/Theme.AndroidPlayground">
+        </activity>
+
+        <!-- USB 디버깅 상단바 빠른 설정 타일 (TileService) -->
+        <service
+            android:name=".ui.devsettings.UsbDebuggingTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_usb_debugging"
+            android:label="@string/tile_usb_debugging"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
         <activity
             android:name=".ui.notification.NotificationActivity"
