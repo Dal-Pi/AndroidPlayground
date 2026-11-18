@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -46,6 +49,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -365,13 +372,14 @@ private fun PowerCalculationGuideCard() {
 }
 
 /**
- * 세부 배터리 지표 아이템 카드 (API 코드 & ADB 명령어 포함)
+ * 세부 배터리 지표 아이템 카드 (API 코드, ADB 명령어 및 가능한 상태값 목록 포함)
  */
 @Composable
 private fun BatteryDetailRowCard(
     item: BatteryDetailItem
 ) {
     val context = LocalContext.current
+    var isStatesExpanded by remember { mutableStateOf(true) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -383,7 +391,7 @@ private fun BatteryDetailRowCard(
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // 1. 메인 라벨 & 값
             Row(
@@ -433,7 +441,67 @@ private fun BatteryDetailRowCard(
                 }
             }
 
-            // 2. 약한 구분선 1 및 API 소스 코드 설명 (Monospace)
+            // 2. 가능한 상태값 목록 (상태값을 가진 항목인 경우 표시)
+            if (item.possibleStates.isNotEmpty()) {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    thickness = 0.5.dp
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isStatesExpanded = !isStatesExpanded }
+                        .padding(vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                text = "가능한 상태 목록 (${item.possibleStates.size})",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        Text(
+                            text = if (isStatesExpanded) "탭하여 접기" else "탭하여 전체 상태 보기",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+
+                    Icon(
+                        imageVector = if (isStatesExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (isStatesExpanded) "접기" else "펼치기",
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                AnimatedVisibility(visible = isStatesExpanded) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 2.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        item.possibleStates.forEach { possibleState ->
+                            PossibleStateItemView(state = possibleState)
+                        }
+                    }
+                }
+            }
+
+            // 3. 약한 구분선 및 API 소스 코드 설명 (Monospace)
             if (!item.codeSnippet.isNullOrEmpty()) {
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
@@ -470,7 +538,7 @@ private fun BatteryDetailRowCard(
                 }
             }
 
-            // 3. 약한 구분선 2 및 ADB 명령어 설명 (Monospace)
+            // 4. 약한 구분선 및 ADB 명령어 설명 (Monospace)
             if (!item.adbCommand.isNullOrEmpty()) {
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
@@ -503,6 +571,78 @@ private fun BatteryDetailRowCard(
                         contentDescription = "ADB 복사",
                         tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                         modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 상태값 항목 뷰 (현재 활성화된 상태는 초록색 배지와 강조 테두리로 표시)
+ */
+@Composable
+private fun PossibleStateItemView(
+    state: PossibleState
+) {
+    val isCurrent = state.isCurrent
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(6.dp),
+        color = if (isCurrent) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        },
+        border = if (isCurrent) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+        } else null
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = state.label,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = state.constantName,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        color = if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.outline
+                    )
+                }
+                Text(
+                    text = state.description,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                )
+            }
+
+            if (isCurrent) {
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = Color(0xFF2E7D32)
+                ) {
+                    Text(
+                        text = "현재 활성",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
             }
