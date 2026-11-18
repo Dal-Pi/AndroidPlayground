@@ -226,21 +226,72 @@ private fun ChargingPowerBannerCard(
             // 중앙 대형 와트(W) 표시
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 if (isCharging) {
-                    Text(
-                        text = String.format(Locale.US, "%.2f W", state.powerWatts),
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = String.format(Locale.US, "%.2f W", state.powerWatts),
+                            style = MaterialTheme.typography.displayMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        if (state.isPowerEstimated) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            ) {
+                                Text(
+                                    text = "추정치",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+
                     Text(
                         text = state.chargingSpeedCategory,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFFE65100)
                     )
+
+                    // 센서 0이거나 에뮬레이터/완충 진단 메시지 박스
+                    if (!state.powerDiagnosticMessage.isNullOrEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = state.powerDiagnosticMessage,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 } else {
                     Text(
                         text = "${state.levelPercent}%",
@@ -274,7 +325,11 @@ private fun ChargingPowerBannerCard(
                     )
                     PowerSubStat(
                         label = "충전/방전 전류",
-                        value = String.format(Locale.US, "%.1f mA", state.currentNowMa)
+                        value = if (state.currentNowMa > 0.0) {
+                            String.format(Locale.US, "%.1f mA", state.currentNowMa)
+                        } else {
+                            if (state.isPowerEstimated) "센서 0mA" else "0.0 mA"
+                        }
                     )
                     PowerSubStat(
                         label = "충전 잔량",

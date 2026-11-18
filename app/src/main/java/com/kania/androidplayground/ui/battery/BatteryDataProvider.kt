@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import android.os.Build
+import com.kania.androidplayground.ui.bluetooth.SystemEnvironmentChecker
+import java.io.File
 import java.util.Locale
 import kotlin.math.abs
 
@@ -15,6 +17,7 @@ object BatteryDataProvider {
      */
     fun getBatteryState(context: Context): BatteryState {
         val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+        val isEmulator = SystemEnvironmentChecker.isEmulator()
 
         // Sticky broadcast Intent 수신
         val intentFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
@@ -44,7 +47,7 @@ object BatteryDataProvider {
             BatteryManager.BATTERY_PLUGGED_AC -> "유선 AC 충전기 (Wall Charger)"
             BatteryManager.BATTERY_PLUGGED_USB -> "USB 포트 (PC / 저속 전원)"
             BatteryManager.BATTERY_PLUGGED_WIRELESS -> "무선 충전 (Wireless Qi)"
-            4 -> "도크 충전 (Dock)" // BatteryManager.BATTERY_PLUGGED_DOCK
+            4 -> "도크 충전 (Dock)"
             else -> if (isCharging) "충전기 연결됨" else "미충전 (배터리 전원 사용)"
         }
 
@@ -54,25 +57,44 @@ object BatteryDataProvider {
         val levelPercent = if (level != -1 && scale > 0) (level * 100 / scale.toFloat()).toInt() else -1
 
         // 4. 전압 (Voltage: mV -> V)
-        val voltageMv = batteryIntent?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) ?: 0
+        var voltageMv = batteryIntent?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) ?: 0
+        if (voltageMv == 0) {
+            // 일부 에뮬레이터/기기 fallback (기본 리튬 전압 4.0V)
+            voltageMv = 4000
+        }
         val voltageV = voltageMv / 1000.0
 
-        // 5. 전류 (Current: 마이크로암페어 -> 밀리암페어)
-        var rawCurrentNow = batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) ?: 0
+        // 5. 전류 (Current: 마이크로암페어 -> 밀리암페어) 다단계 탐색
+        val (rawCurrentNow, currentNowMa) = resolveCurrentNow(batteryManager, isCharging)
         val rawCurrentAvg = batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE)
+        val currentAvgMa = rawCurrentAvg?.let { convertToMilliamperes(it) }
 
-        // 기기별 단위 보정: 대부분 microampere(uA)지만, 절댓값이 10,000 미만인 기기는 이미 mA 단위일 수 있음
-        val currentNowMa = convertToMilliamperes(rawCurrentNow, isCharging)
-        val currentAvgMa = rawCurrentAvg?.let { convertToMilliamperes(it, isCharging) }
+        // 6. 전력(W) 계산 및 진단
+        var isPowerEstimated = false
+        var diagnosticMessage: String? = null
+        var powerWatts = 0.0
 
-        // 6. 전력(W) 계산: P = V(Volt) * I(Ampere)
-        val powerWatts = if (isCharging && voltageV > 0 && currentNowMa > 0) {
-            (voltageV * (currentNowMa / 1000.0))
-        } else if (!isCharging && voltageV > 0 && currentNowMa > 0) {
-            // 방전 소비 전력
-            (voltageV * (currentNowMa / 1000.0))
+        if (isCharging) {
+            if (currentNowMa > 0.0 && voltageV > 0.0) {
+                // 센서 기반 실시간 측정 성공!
+                powerWatts = voltageV * (currentNowMa / 1000.0)
+            } else {
+                // 센서가 0이거나 미지원인 경우 원인 분석 & 추정치 계산
+                isPowerEstimated = true
+                val estimatedInfo = calculateEstimatedWatts(plugged, levelPercent, voltageV, status, isEmulator)
+                powerWatts = estimatedInfo.first
+                diagnosticMessage = estimatedInfo.second
+            }
         } else {
-            0.0
+            // 방전 중인 경우
+            if (currentNowMa > 0.0 && voltageV > 0.0) {
+                powerWatts = voltageV * (currentNowMa / 1000.0)
+            } else {
+                powerWatts = 0.0
+                if (isEmulator) {
+                    diagnosticMessage = "가상머신 에뮬레이터 환경에서는 배터리 방전 전류 센서가 시뮬레이션되지 않습니다."
+                }
+            }
         }
 
         // 7. 충전 속도 등급 분류
@@ -84,7 +106,7 @@ object BatteryDataProvider {
                 powerWatts >= 15.0 -> "고속 충전 (Fast Charging, 15~25W)"
                 powerWatts >= 5.0 -> "일반 유선 충전 (Standard, 5~15W)"
                 powerWatts > 0.0 -> "저속 충전 (Slow Charging, ~5W)"
-                else -> "충전 준비 중 (측정 대기)"
+                else -> "충전 대기 중"
             }
         }
 
@@ -120,22 +142,65 @@ object BatteryDataProvider {
             levelPercent = levelPercent,
             voltageMv = voltageMv,
             voltageV = voltageV,
+            rawCurrentNow = rawCurrentNow,
             currentNowMa = currentNowMa,
             currentAverageMa = currentAvgMa,
             powerWatts = powerWatts,
+            isPowerEstimated = isPowerEstimated,
+            estimatedWatts = if (isPowerEstimated) powerWatts else 0.0,
+            powerDiagnosticMessage = diagnosticMessage,
             chargingSpeedCategory = speedCategory,
             temperatureC = tempC,
             healthCode = health,
             healthString = healthString,
             technology = technology,
-            chargeCounterMah = chargeCounterMah
+            chargeCounterMah = chargeCounterMah,
+            isEmulator = isEmulator
         )
     }
 
     /**
-     * CURRENT_NOW 마이크로암페어(uA) 값을 밀리암페어(mA)로 변환 및 부호/단위 보정
+     * 다단계 전류 탐색 (CURRENT_NOW -> CURRENT_AVERAGE -> sysfs 파일)
      */
-    private fun convertToMilliamperes(rawCurrent: Int, isCharging: Boolean): Double {
+    private fun resolveCurrentNow(batteryManager: BatteryManager?, isCharging: Boolean): Pair<Int, Double> {
+        // 1단계: BatteryManager.BATTERY_PROPERTY_CURRENT_NOW
+        var raw = batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) ?: 0
+        if (raw != 0 && raw != Int.MIN_VALUE) {
+            return Pair(raw, convertToMilliamperes(raw))
+        }
+
+        // 2단계: BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE fallback
+        val avg = batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE) ?: 0
+        if (avg != 0 && avg != Int.MIN_VALUE) {
+            return Pair(avg, convertToMilliamperes(avg))
+        }
+
+        // 3단계: 커널 sysfs 파일 직접 조회 시도 (일부 루팅/OEM 기기)
+        val sysfsPaths = listOf(
+            "/sys/class/power_supply/battery/current_now",
+            "/sys/class/power_supply/battery/batt_current",
+            "/sys/class/power_supply/bms/current_now"
+        )
+        for (path in sysfsPaths) {
+            try {
+                val file = File(path)
+                if (file.exists() && file.canRead()) {
+                    val content = file.readText().trim()
+                    val value = content.toIntOrNull()
+                    if (value != null && value != 0) {
+                        return Pair(value, convertToMilliamperes(value))
+                    }
+                }
+            } catch (_: Throwable) {}
+        }
+
+        return Pair(raw, 0.0)
+    }
+
+    /**
+     * CURRENT_NOW 마이크로암페어(uA) 값을 밀리암페어(mA)로 변환
+     */
+    private fun convertToMilliamperes(rawCurrent: Int): Double {
         if (rawCurrent == 0 || rawCurrent == Int.MIN_VALUE) return 0.0
         val magnitude = abs(rawCurrent.toDouble())
         return if (magnitude > 10000) {
@@ -146,7 +211,57 @@ object BatteryDataProvider {
     }
 
     /**
-     * 화면에 표시할 상세 지표 목록 (코드 스니펫, ADB 명령어 및 가능한 상태값 목록 포함)
+     * 센서가 0일 때 원인 분석 및 전원 연결 방식에 따른 추정 전력 계산
+     */
+    private fun calculateEstimatedWatts(
+        plugged: Int,
+        levelPercent: Int,
+        voltageV: Double,
+        status: Int,
+        isEmulator: Boolean
+    ): Pair<Double, String> {
+        if (status == BatteryManager.BATTERY_STATUS_FULL || levelPercent >= 100) {
+            return Pair(0.0, "배터리가 100% 완충되어 배터리 보호 회로가 충전 전류 유입을 완전히 차단(0 mA)했습니다.")
+        }
+
+        if (status == BatteryManager.BATTERY_STATUS_NOT_CHARGING) {
+            return Pair(0.0, "배터리 보호 모드(최대 충전 제한 등) 또는 온도 이상으로 전류 유입이 일시 차단되었습니다.")
+        }
+
+        // 전원 규격 기준 기본 추정 전력 (W)
+        var baseWatts = when (plugged) {
+            BatteryManager.BATTERY_PLUGGED_AC -> 18.0 // 일반 고속 유선 충전기 기본값
+            BatteryManager.BATTERY_PLUGGED_USB -> 4.5  // 일반 USB 5V 0.9A 기본값
+            BatteryManager.BATTERY_PLUGGED_WIRELESS -> 9.0 // 일반 무선 충전 기본값
+            4 -> 15.0 // 도크 전원
+            else -> 10.0
+        }
+
+        // 80% 이상 충전 구간에서는 세류 충전(Trickle/CV)으로 감속 추정
+        if (levelPercent in 80..99) {
+            baseWatts *= 0.4
+        }
+
+        val reason = if (isEmulator) {
+            "에뮬레이터(Virtual Device)는 하드웨어 전류 센서가 없어 센서값이 0으로 보고됩니다. 연결된 전원 규격(${getPlugName(plugged)}) 기준 추정 전력을 표시합니다."
+        } else {
+            "기기 하드웨어 센서가 CURRENT_NOW(실시간 전류)를 0으로 보고하여, 연결된 전원 규격(${getPlugName(plugged)}) 기준 추정 전력으로 계산되었습니다."
+        }
+
+        return Pair(baseWatts, reason)
+    }
+
+    private fun getPlugName(plugged: Int): String {
+        return when (plugged) {
+            BatteryManager.BATTERY_PLUGGED_AC -> "유선 AC 고속 충전"
+            BatteryManager.BATTERY_PLUGGED_USB -> "USB 포트"
+            BatteryManager.BATTERY_PLUGGED_WIRELESS -> "무선 충전"
+            else -> "충전기 전원"
+        }
+    }
+
+    /**
+     * 화면에 표시할 상세 지표 목록
      */
     fun getDetailItems(state: BatteryState): List<BatteryDetailItem> {
         val items = mutableListOf<BatteryDetailItem>()
@@ -163,7 +278,7 @@ object BatteryDataProvider {
             )
         )
 
-        // 2. 충전 상태 (EXTRA_STATUS) - 상태값 목록 제공
+        // 2. 충전 상태 (EXTRA_STATUS)
         val statusPossibleStates = listOf(
             PossibleState(
                 constantName = "BATTERY_STATUS_CHARGING (2)",
@@ -208,8 +323,14 @@ object BatteryDataProvider {
             )
         )
 
-        // 3. 실시간 충전/소비 전력 (W) - 등급 목록 제공
+        // 3. 실시간 충전/소비 전력 (W)
         val wattsFormatted = String.format(Locale.US, "%.2f W", state.powerWatts)
+        val wattsDisplay = if (state.isPowerEstimated) {
+            "$wattsFormatted (추정치 / ${state.chargingSpeedCategory})"
+        } else {
+            if (state.isCharging) "$wattsFormatted (${state.chargingSpeedCategory})" else "0.00 W (방전 중)"
+        }
+
         val speedPossibleStates = listOf(
             PossibleState(
                 constantName = "Super Fast (25W+)",
@@ -245,8 +366,8 @@ object BatteryDataProvider {
         items.add(
             BatteryDetailItem(
                 label = "실시간 전력 (Watt)",
-                value = if (state.isCharging) "$wattsFormatted (${state.chargingSpeedCategory})" else "0.00 W (방전 중)",
-                description = "P = V(전압) × I(전류) 공식으로 계산된 배터리 셀 실시간 충전 전력",
+                value = wattsDisplay,
+                description = if (state.isPowerEstimated) "센서 미지원/에뮬레이터로 인한 규격 추정치" else "P = V(전압) × I(전류) 실측 전력",
                 codeSnippet = "val watts = (voltageMv / 1000.0) * (abs(currentNowUa) / 1000000.0)",
                 adbCommand = "adb shell \"dumpsys battery | grep -E 'voltage|current'\"",
                 isHighlight = true,
@@ -254,7 +375,7 @@ object BatteryDataProvider {
             )
         )
 
-        // 4. 충전 전원 연결 방식 (EXTRA_PLUGGED) - 상태값 목록 제공
+        // 4. 충전 전원 연결 방식 (EXTRA_PLUGGED)
         val pluggedPossibleStates = listOf(
             PossibleState(
                 constantName = "0 (Unplugged)",
@@ -298,7 +419,7 @@ object BatteryDataProvider {
             )
         )
 
-        // 5. 배터리 건강 상태 (EXTRA_HEALTH) - 상태값 목록 제공
+        // 5. 배터리 건강 상태 (EXTRA_HEALTH)
         val healthPossibleStates = listOf(
             PossibleState(
                 constantName = "BATTERY_HEALTH_GOOD (2)",
@@ -367,12 +488,16 @@ object BatteryDataProvider {
         )
 
         // 7. 실시간 유입/유출 전류 (Current Now)
-        val currentFormatted = String.format(Locale.US, "%.1f mA", state.currentNowMa)
+        val currentFormatted = if (state.currentNowMa > 0.0) {
+            String.format(Locale.US, "%.1f mA", state.currentNowMa)
+        } else {
+            "0.0 mA (센서 미지원 또는 완충 차단)"
+        }
         items.add(
             BatteryDetailItem(
                 label = "실시간 전류 (Current Now)",
                 value = currentFormatted,
-                description = if (state.isCharging) "배터리로 유입되는 실시간 충전 전류" else "배터리에서 소모되는 방전 전류",
+                description = "BatteryManager.BATTERY_PROPERTY_CURRENT_NOW (원시값: ${state.rawCurrentNow})",
                 codeSnippet = "batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)",
                 adbCommand = "adb shell cat /sys/class/power_supply/battery/current_now  # (단위: uA)"
             )

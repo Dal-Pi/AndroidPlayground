@@ -22,15 +22,20 @@ data class BatteryState(
     val levelPercent: Int = -1,
     val voltageMv: Int = 0,
     val voltageV: Double = 0.0,
+    val rawCurrentNow: Int = 0,
     val currentNowMa: Double = 0.0,
     val currentAverageMa: Double? = null,
     val powerWatts: Double = 0.0,
+    val isPowerEstimated: Boolean = false,
+    val estimatedWatts: Double = 0.0,
+    val powerDiagnosticMessage: String? = null,
     val chargingSpeedCategory: String = "미충전",
     val temperatureC: Double = 0.0,
     val healthCode: Int = -1,
     val healthString: String = "알 수 없음",
     val technology: String = "Li-ion",
     val chargeCounterMah: Int? = null,
+    val isEmulator: Boolean = false,
     val timestampMillis: Long = System.currentTimeMillis()
 )
 
