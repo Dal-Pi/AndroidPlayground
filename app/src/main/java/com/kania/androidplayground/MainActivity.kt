@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kania.androidplayground.ui.LazyListPagingTestActivity
+import com.kania.androidplayground.ui.battery.BatteryActivity
 import com.kania.androidplayground.ui.bluetooth.BluetoothTestActivity
 import com.kania.androidplayground.ui.deviceinfo.DeviceInfoActivity
 import com.kania.androidplayground.ui.notification.NotificationActivity
@@ -77,6 +78,12 @@ private fun PlaygroundList(
             nameStringId = R.string.playground_device_info,
             onClick = {
                 context.startActivity(Intent(context, DeviceInfoActivity::class.java))
+            }
+        )
+        playgroundListItem(
+            nameStringId = R.string.playground_battery,
+            onClick = {
+                context.startActivity(Intent(context, BatteryActivity::class.java))
             }
         )
         playgroundListItem(

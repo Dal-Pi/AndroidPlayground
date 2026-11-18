@@ -68,6 +68,13 @@
         </activity>
 
         <activity
+            android:name=".ui.battery.BatteryActivity"
+            android:exported="true"
+            android:label="@string/playground_battery"
+            android:theme="@style/Theme.AndroidPlayground">
+        </activity>
+
+        <activity
             android:name=".ui.notification.NotificationActivity"
             android:exported="true"
             android:label="@string/playground_notification"

@@ -2,6 +2,7 @@
     <string name="app_name">AndroidPlayground</string>
 
     <string name="playground_device_info">DeviceInfo</string>
+    <string name="playground_battery">Battery (충전 &amp; 전력 W)</string>
     <string name="playground_notification">Notification</string>
     <string name="playground_lazylistpaging">LazyList Paging</string>
     <string name="playground_datetime">DateTime</string>
