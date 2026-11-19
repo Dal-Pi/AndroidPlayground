@@ -129,7 +129,8 @@ object DevSettingsManager {
             isDevSettingsEnabled = isDevSettingsEnabled(context),
             isAdbEnabled = isAdbEnabled(context),
             hasPermission = hasWriteSecureSettingsPermission(context),
-            grantAdbCommand = "adb shell pm grant ${context.packageName} android.permission.WRITE_SECURE_SETTINGS"
+            grantAdbCommand = "adb shell pm grant ${context.packageName} android.permission.WRITE_SECURE_SETTINGS",
+            revokeAdbCommand = "adb shell pm revoke ${context.packageName} android.permission.WRITE_SECURE_SETTINGS"
         )
     }
 }

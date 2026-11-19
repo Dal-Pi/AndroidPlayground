@@ -23,14 +23,20 @@ object BatteryDataProvider {
         val intentFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
         val batteryIntent: Intent? = context.registerReceiver(null, intentFilter)
 
-        // 1. 충전 여부 판별
+        // 1. 충전 여부 판별 (API + Intent + Plugged 전원 연결 상태 결합)
         val status = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+        val plugged = batteryIntent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) ?: -1
+        val isPlugged = plugged == BatteryManager.BATTERY_PLUGGED_AC ||
+                plugged == BatteryManager.BATTERY_PLUGGED_USB ||
+                plugged == BatteryManager.BATTERY_PLUGGED_WIRELESS ||
+                plugged == 4 // BATTERY_PLUGGED_DOCK
+
         val isChargingFromIntent = status == BatteryManager.BATTERY_STATUS_CHARGING ||
                 status == BatteryManager.BATTERY_STATUS_FULL
         val isCharging = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            batteryManager?.isCharging ?: isChargingFromIntent
+            (batteryManager?.isCharging == true) || isChargingFromIntent || isPlugged
         } else {
-            isChargingFromIntent
+            isChargingFromIntent || isPlugged
         }
 
         val statusString = when (status) {
@@ -42,7 +48,6 @@ object BatteryDataProvider {
         }
 
         // 2. 전원 연결 방식
-        val plugged = batteryIntent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) ?: -1
         val plugTypeString = when (plugged) {
             BatteryManager.BATTERY_PLUGGED_AC -> "유선 AC 충전기 (Wall Charger)"
             BatteryManager.BATTERY_PLUGGED_USB -> "USB 포트 (PC / 저속 전원)"
@@ -220,14 +225,6 @@ object BatteryDataProvider {
         status: Int,
         isEmulator: Boolean
     ): Pair<Double, String> {
-        if (status == BatteryManager.BATTERY_STATUS_FULL || levelPercent >= 100) {
-            return Pair(0.0, "배터리가 100% 완충되어 배터리 보호 회로가 충전 전류 유입을 완전히 차단(0 mA)했습니다.")
-        }
-
-        if (status == BatteryManager.BATTERY_STATUS_NOT_CHARGING) {
-            return Pair(0.0, "배터리 보호 모드(최대 충전 제한 등) 또는 온도 이상으로 전류 유입이 일시 차단되었습니다.")
-        }
-
         // 전원 규격 기준 기본 추정 전력 (W)
         var baseWatts = when (plugged) {
             BatteryManager.BATTERY_PLUGGED_AC -> 18.0 // 일반 고속 유선 충전기 기본값
@@ -235,6 +232,14 @@ object BatteryDataProvider {
             BatteryManager.BATTERY_PLUGGED_WIRELESS -> 9.0 // 일반 무선 충전 기본값
             4 -> 15.0 // 도크 전원
             else -> 10.0
+        }
+
+        if (status == BatteryManager.BATTERY_STATUS_FULL || levelPercent >= 100) {
+            return Pair(0.0, "배터리가 100% 완충되어 PMIC 보호 회로가 전류 유입을 차단(0 mA)했습니다. (연결 규격: ${getPlugName(plugged)})")
+        }
+
+        if (status == BatteryManager.BATTERY_STATUS_NOT_CHARGING) {
+            return Pair(baseWatts, "배터리 보호 충전(80/85% 제한) 또는 온도 제어로 전류 유입이 제어 중입니다. 연결된 ${getPlugName(plugged)} 정격 기준으로 표기합니다.")
         }
 
         // 80% 이상 충전 구간에서는 세류 충전(Trickle/CV)으로 감속 추정
@@ -325,10 +330,18 @@ object BatteryDataProvider {
 
         // 3. 실시간 충전/소비 전력 (W)
         val wattsFormatted = String.format(Locale.US, "%.2f W", state.powerWatts)
-        val wattsDisplay = if (state.isPowerEstimated) {
-            "$wattsFormatted (추정치 / ${state.chargingSpeedCategory})"
+        val wattsDisplay = if (state.isCharging) {
+            if (state.isPowerEstimated) {
+                "$wattsFormatted (추정치 / ${state.chargingSpeedCategory})"
+            } else {
+                "$wattsFormatted (${state.chargingSpeedCategory})"
+            }
         } else {
-            if (state.isCharging) "$wattsFormatted (${state.chargingSpeedCategory})" else "0.00 W (방전 중)"
+            if (state.powerWatts > 0.0) {
+                "$wattsFormatted (실시간 방전 소모 전력)"
+            } else {
+                "0.00 W (방전 중 / 센서 0mA 대기)"
+            }
         }
 
         val speedPossibleStates = listOf(

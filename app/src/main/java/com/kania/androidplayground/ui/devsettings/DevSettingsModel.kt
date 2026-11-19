@@ -4,7 +4,8 @@ data class DevSettingsState(
     val isDevSettingsEnabled: Boolean = false,
     val isAdbEnabled: Boolean = false,
     val hasPermission: Boolean = false,
-    val grantAdbCommand: String = ""
+    val grantAdbCommand: String = "",
+    val revokeAdbCommand: String = ""
 )
 
 data class ToggleResult(

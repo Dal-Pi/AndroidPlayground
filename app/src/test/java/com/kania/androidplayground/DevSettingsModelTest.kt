@@ -16,21 +16,25 @@ class DevSettingsModelTest {
         assertFalse(state.isAdbEnabled)
         assertFalse(state.hasPermission)
         assertEquals("", state.grantAdbCommand)
+        assertEquals("", state.revokeAdbCommand)
     }
 
     @Test
     fun customState_isCorrect() {
-        val command = "adb shell pm grant com.test android.permission.WRITE_SECURE_SETTINGS"
+        val grantCmd = "adb shell pm grant com.test android.permission.WRITE_SECURE_SETTINGS"
+        val revokeCmd = "adb shell pm revoke com.test android.permission.WRITE_SECURE_SETTINGS"
         val state = DevSettingsState(
             isDevSettingsEnabled = true,
             isAdbEnabled = true,
             hasPermission = true,
-            grantAdbCommand = command
+            grantAdbCommand = grantCmd,
+            revokeAdbCommand = revokeCmd
         )
         assertTrue(state.isDevSettingsEnabled)
         assertTrue(state.isAdbEnabled)
         assertTrue(state.hasPermission)
-        assertEquals(command, state.grantAdbCommand)
+        assertEquals(grantCmd, state.grantAdbCommand)
+        assertEquals(revokeCmd, state.revokeAdbCommand)
     }
 
     @Test

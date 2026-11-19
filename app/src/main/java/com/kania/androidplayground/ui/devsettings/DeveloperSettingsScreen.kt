@@ -171,7 +171,7 @@ private fun PermissionStatusCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (hasPermission) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
             } else {
                 MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
             }
@@ -180,7 +180,7 @@ private fun PermissionStatusCard(
         border = BorderStroke(
             width = 1.dp,
             color = if (hasPermission) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
             } else {
                 MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
             }
@@ -191,6 +191,7 @@ private fun PermissionStatusCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // 1. 현재 권한 상태 헤더
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -201,95 +202,108 @@ private fun PermissionStatusCard(
                     tint = if (hasPermission) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(24.dp)
                 )
-                Text(
-                    text = if (hasPermission) "WRITE_SECURE_SETTINGS 권한 획득됨" else "WRITE_SECURE_SETTINGS 권한 필요",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (hasPermission) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                )
+                Column {
+                    Text(
+                        text = if (hasPermission) "WRITE_SECURE_SETTINGS 권한 획득됨" else "WRITE_SECURE_SETTINGS 권한 필요",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (hasPermission) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    )
+                    Text(
+                        text = if (hasPermission) "앱 스위치 및 상단바 빠른 설정 타일이 정상 작동합니다."
+                        else "보안 설정 변경을 위해 PC에서 1회성 ADB 권한 부여가 필요합니다.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 2. 상시 고정 노출되는 ADB 가이드 섹션
+            Text(
+                text = "ADB 권한 제어 가이드 (PC 터미널 실행)",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "휴대폰을 PC에 USB로 연결한 후 터미널 또는 명령 프롬프트(CMD)에 아래 명령어를 실행하세요 (루팅 불필요).",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 17.sp
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (hasPermission) {
-                Text(
-                    text = "권한이 정상 부여되어 앱 및 상단바 빠른 설정 타일에서 개발자 옵션과 USB 디버깅을 자유롭게 토글할 수 있습니다.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                Text(
-                    text = "시스템 보안 설정을 앱에서 직접 수정하려면 PC 연결 후 1회성 ADB 권한 부여가 필요합니다 (루팅 불필요).",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // 명령어 복사 박스
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            copyToClipboard(context, state.grantAdbCommand)
-                        },
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color.Black.copy(alpha = 0.85f)
+            // 명령어 복사 박스
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        copyToClipboard(context, state.grantAdbCommand)
+                    },
+                shape = RoundedCornerShape(8.dp),
+                color = Color.Black.copy(alpha = 0.85f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = state.grantAdbCommand,
-                            color = Color(0xFF81C784),
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = "복사",
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    Text(
+                        text = state.grantAdbCommand,
+                        color = Color(0xFF81C784),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "복사",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { copyToClipboard(context, state.grantAdbCommand) },
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(text = "명령어 복사", fontSize = 13.sp)
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                OutlinedButton(
+                    onClick = onRefresh,
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
-                    Button(
-                        onClick = { copyToClipboard(context, state.grantAdbCommand) },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "명령어 복사", fontSize = 13.sp)
-                    }
-
-                    OutlinedButton(
-                        onClick = onRefresh,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "권한 재확인", fontSize = 13.sp)
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(text = "권한 재확인", fontSize = 13.sp)
                 }
             }
         }
